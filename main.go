@@ -53,12 +53,12 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 				return
 			}
 			bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("user is in voice channel %s", voiceChannelId))
-			// TODO: Search for query
+			// TODO: Search for query (can use the scraper I made on my old bot)
 			log.Printf("Searching for \"%s\"", query)
 			bot.ChannelMessageSend(message.ChannelID, "Search results: <...>")
-			// TODO: Download audio
+			// TODO: Download audio (can use a library for this)
 
-			// TODO: Add song to queue (queue must be per guild, i.e. map[guild id]Media
+			// TODO: Add song to queue (queue must be per guild, i.e. map[guild id]Media)
 			// XXX: Media should contain: query, length, title and youtube link
 
 			// TODO: Join channel (if not already in one)
