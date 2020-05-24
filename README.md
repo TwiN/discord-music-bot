@@ -1,5 +1,8 @@
 # discord-music-bot
 
+Minimal music bot for Discord.
+
+
 ## Getting started
 
 1. Create an application
