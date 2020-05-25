@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/TwinProduction/discord-music-bot/config"
 	"github.com/TwinProduction/discord-music-bot/core"
+	"github.com/TwinProduction/discord-music-bot/ffmpeg"
 	"github.com/TwinProduction/discord-music-bot/youtube"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -24,6 +25,9 @@ var (
 
 	queues      = make(map[string][]*core.Media)
 	queuesMutex = sync.RWMutex{}
+
+	// guildNames is a mapping between guild id and guild name
+	guildNames = make(map[string]string)
 
 	youtubeService *youtube.Service
 )
@@ -63,49 +67,61 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 	}
 }
 
-func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCreate, query string) bool {
+func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCreate, query string) {
 	if len(queues[message.GuildID]) > 10 {
 		_, _ = bot.ChannelMessageSend(message.ChannelID, "The queue is full!")
-		return true
+		return
 	}
+	guildName := GetGuildNameById(message.GuildID, bot)
 
 	// Find the voice channel the user is in
 	voiceChannelId, err := GetVoiceChannelWhereMessageAuthorIs(bot, message)
 	if err != nil {
-		log.Printf("[%s] Failed to find voice channel where message author is located: %s", message.GuildID, err.Error())
+		log.Printf("[%s] Failed to find voice channel where message author is located: %s", guildName, err.Error())
 		_, _ = bot.ChannelMessageSend(message.ChannelID, err.Error())
-		return true
+		return
 	}
-	log.Printf("[%s] Found user %s in voice channel %s", message.GuildID, message.Author.Username, voiceChannelId)
+	log.Printf("[%s] Found user %s in voice channel %s", guildName, message.Author.Username, voiceChannelId)
 
 	// Search for video
-	log.Printf("[%s] Searching for \"%s\"", message.GuildID, query)
+	log.Printf("[%s] Searching for \"%s\"", guildName, query)
 	result, err := youtubeService.Search(query)
 	if err != nil {
-		log.Printf("[%s] Failed to search for video: %s", message.GuildID, err.Error())
+		log.Printf("[%s] Failed to search for video: %s", guildName, err.Error())
 		_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to search for video: %s", err.Error()))
-		return true
+		return
 	}
-	log.Printf("[%s] Found video titled \"%s\" from query \"%s\"", message.GuildID, result.Title, query)
+	log.Printf("[%s] Found video titled \"%s\" from query \"%s\"", guildName, result.Title, query)
 
 	// Download the video
-	media, err := result.Download()
+	log.Printf("[%s] Downloading video with title \"%s\"", guildName, result.Title)
+	media, err := youtubeService.Download(result)
 	if err != nil {
-		log.Printf("[%s] Failed to download video: %s", message.GuildID, err.Error())
-		_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to search for video: %s", err.Error()))
-		return true
+		log.Printf("[%s] Failed to download video: %s", guildName, err.Error())
+		_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to search for video based on query \"%s\"", query))
+		return
 	}
-	log.Printf("[%s] Started downloading video with title \"%s\" at \"%s\"", message.GuildID, media.Title, media.FilePath)
+	log.Printf("[%s] Downloaded video with title \"%s\" at \"%s\"", guildName, media.Title, media.FilePath)
+
+	// Convert video to audio
+	log.Printf("[%s] Extracting audio from video with title \"%s\"", guildName, result.Title)
+	err = ffmpeg.ConvertVideoToAudio(media)
+	if err != nil {
+		log.Printf("[%s] Failed to convert video to audio: %s", guildName, err.Error())
+		_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to convert video to audio: %s", err.Error()))
+		_ = os.Remove(media.FilePath)
+		return
+	}
+	log.Printf("[%s] Extracted audio from video with title \"%s\" into \"%s\"", guildName, result.Title, media.FilePath)
 
 	// Add song to guild queue
 	queuesMutex.Lock()
 	defer queuesMutex.Unlock()
 	queues[message.GuildID] = append(queues[message.GuildID], media)
-	log.Printf("[%s] Added media with title \"%s\" to queue at position %d", message.GuildID, media.Title, len(queues[message.GuildID]))
+	log.Printf("[%s] Added media with title \"%s\" to queue at position %d", guildName, media.Title, len(queues[message.GuildID]))
 
 	// TODO: Join channel (if not already in one)
 	// if not already in one, then start goroutine that takes care of streaming the queue. (guild worker)?
-	return false
 }
 
 func GetVoiceChannelWhereMessageAuthorIs(bot *discordgo.Session, message *discordgo.MessageCreate) (string, error) {
@@ -128,4 +144,19 @@ func Connect(discordToken string) (*discordgo.Session, error) {
 	}
 	err = discord.Open()
 	return discord, err
+}
+
+func GetGuildNameById(guildId string, bot *discordgo.Session) string {
+	guildName, ok := guildNames[guildId]
+	if !ok {
+		guild, err := bot.Guild(guildId)
+		if err != nil {
+			// Failed to get the guild? Whatever, we'll just use the guild id
+			guildNames[guildId] = guildId
+			return guildId
+		}
+		guildNames[guildId] = guild.Name
+		return guild.Name
+	}
+	return guildName
 }

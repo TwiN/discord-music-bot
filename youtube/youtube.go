@@ -8,14 +8,21 @@ import (
 	downloader "github.com/kkdai/youtube"
 	"google.golang.org/api/option"
 	youtube "google.golang.org/api/youtube/v3"
+	"io"
+	"net/http"
+	"os"
+	"path/filepath"
 )
 
 var (
-	ErrNoResultFound = errors.New("no results found")
+	ErrNoResultFound   = errors.New("no results found")
+	ErrStreamListEmpty = errors.New("stream list is empty")
 )
 
 type Service struct {
 	apiKey string
+
+	client *http.Client
 }
 
 type SearchResult struct {
@@ -24,11 +31,14 @@ type SearchResult struct {
 }
 
 func NewService(apiKey string) *Service {
-	return &Service{apiKey: apiKey}
+	return &Service{
+		apiKey: apiKey,
+		client: &http.Client{Transport: &http.Transport{}},
+	}
 }
 
-func (yt *Service) Search(query string) (*SearchResult, error) {
-	api, err := youtube.NewService(context.Background(), option.WithAPIKey(yt.apiKey))
+func (svc *Service) Search(query string) (*SearchResult, error) {
+	api, err := youtube.NewService(context.Background(), option.WithAPIKey(svc.apiKey))
 	if err != nil {
 		return nil, err
 	}
@@ -47,18 +57,44 @@ func (yt *Service) Search(query string) (*SearchResult, error) {
 	return nil, ErrNoResultFound
 }
 
-func (result *SearchResult) GetVideoUrl() string {
-	return fmt.Sprintf("https://www.youtube.com/watch?v=%s", result.VideoId)
-}
-
-func (result *SearchResult) Download() (*core.Media, error) {
+func (svc *Service) Download(result *SearchResult) (*core.Media, error) {
 	yt := downloader.NewYoutube(false)
 	if err := yt.DecodeURL(result.GetVideoUrl()); err != nil {
 		return nil, err
 	}
-	fileName := fmt.Sprintf("%s.mp4", result.VideoId)
-	if err := yt.StartDownload(fileName); err != nil {
+	if len(yt.StreamList) == 0 {
+		return nil, ErrStreamListEmpty
+	}
+	response, err := svc.client.Get(yt.StreamList[0]["url"])
+	if err != nil {
 		return nil, err
 	}
-	return core.NewMedia(result.Title, fileName), nil
+	defer response.Body.Close()
+	destinationFileName := fmt.Sprintf("%s.mp4", result.VideoId)
+	if response.StatusCode == 200 {
+		err = os.MkdirAll(filepath.Dir(destinationFileName), 0755)
+		if err != nil {
+			return nil, err
+		}
+		destinationFile, err := os.Create(destinationFileName)
+		if err != nil {
+			return nil, err
+		}
+		defer destinationFile.Close()
+		_, err = io.Copy(destinationFile, response.Body)
+	} else {
+		return nil, errors.New("video url returned non-200 status code")
+	}
+
+	//if err := yt.StartDownloadWithQuality(fileName, "low"); err != nil {
+	//	return nil, err
+	//}
+	//// Wait until download is completed
+	//for <-yt.DownloadPercent != 100 {}
+
+	return core.NewMedia(result.Title, destinationFileName), nil
+}
+
+func (result *SearchResult) GetVideoUrl() string {
+	return fmt.Sprintf("https://www.youtube.com/watch?v=%s", result.VideoId)
 }
