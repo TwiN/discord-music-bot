@@ -18,12 +18,13 @@ import (
 
 const (
 	CommandPrefix = "!"
+	MaxQueueSize  = 10
 )
 
 var (
 	ErrUserNotInVoiceChannel = errors.New("couldn't find voice channel with user in it")
 
-	queues      = make(map[string][]*core.Media)
+	queues      = make(map[string]chan *core.Media)
 	queuesMutex = sync.RWMutex{}
 
 	// guildNames is a mapping between guild id and guild name
@@ -68,11 +69,11 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 }
 
 func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCreate, query string) {
-	if len(queues[message.GuildID]) > 10 {
+	if len(queues[message.GuildID]) >= MaxQueueSize {
 		_, _ = bot.ChannelMessageSend(message.ChannelID, "The queue is full!")
 		return
 	}
-	guildName := GetGuildNameById(message.GuildID, bot)
+	guildName := GetGuildNameById(bot, message.GuildID)
 
 	// Find the voice channel the user is in
 	voiceChannelId, err := GetVoiceChannelWhereMessageAuthorIs(bot, message)
@@ -117,11 +118,16 @@ func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCrea
 	// Add song to guild queue
 	queuesMutex.Lock()
 	defer queuesMutex.Unlock()
-	queues[message.GuildID] = append(queues[message.GuildID], media)
+	if queues[message.GuildID] == nil {
+		queues[message.GuildID] = make(chan *core.Media, MaxQueueSize)
+	}
+	queues[message.GuildID] <- media
 	log.Printf("[%s] Added media with title \"%s\" to queue at position %d", guildName, media.Title, len(queues[message.GuildID]))
 
 	// TODO: Join channel (if not already in one)
 	// if not already in one, then start goroutine that takes care of streaming the queue. (guild worker)?
+	// XXX: move this in side "if queues[message.GuildID] == nil {" block?
+	//worker(bot, message.GuildID, message.ChannelID)
 }
 
 func GetVoiceChannelWhereMessageAuthorIs(bot *discordgo.Session, message *discordgo.MessageCreate) (string, error) {
@@ -146,7 +152,7 @@ func Connect(discordToken string) (*discordgo.Session, error) {
 	return discord, err
 }
 
-func GetGuildNameById(guildId string, bot *discordgo.Session) string {
+func GetGuildNameById(bot *discordgo.Session, guildId string) string {
 	guildName, ok := guildNames[guildId]
 	if !ok {
 		guild, err := bot.Guild(guildId)
