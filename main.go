@@ -123,6 +123,7 @@ func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCrea
 	}
 	queues[message.GuildID] <- media
 	log.Printf("[%s] Added media with title \"%s\" to queue at position %d", guildName, media.Title, len(queues[message.GuildID]))
+	_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf(":heavy_check_mark: Added media with title \"%s\" to queue at position %d", media.Title, len(queues[message.GuildID])))
 
 	// TODO: Join channel (if not already in one)
 	// if not already in one, then start goroutine that takes care of streaming the queue. (guild worker)?
