@@ -14,6 +14,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 )
 
 const (
@@ -116,19 +117,26 @@ func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCrea
 	log.Printf("[%s] Extracted audio from video with title \"%s\" into \"%s\"", guildName, result.Title, media.FilePath)
 
 	// Add song to guild queue
-	queuesMutex.Lock()
-	defer queuesMutex.Unlock()
+	//queuesMutex.Lock()
+	//defer queuesMutex.Unlock()
 	if queues[message.GuildID] == nil {
 		queues[message.GuildID] = make(chan *core.Media, MaxQueueSize)
+		// If the channel was nil, it means that there was no worker
+		fmt.Println("starting worker")
+		go func() {
+			time.Sleep(500 * time.Millisecond)
+			err = worker(bot, message.GuildID, voiceChannelId)
+			if err != nil {
+				log.Printf("[%s] Failed to start worker: %s", guildName, err.Error())
+				_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to start voice worker: %s", err.Error()))
+				_ = os.Remove(media.FilePath)
+				return
+			}
+		}()
 	}
 	queues[message.GuildID] <- media
 	log.Printf("[%s] Added media with title \"%s\" to queue at position %d", guildName, media.Title, len(queues[message.GuildID]))
-	_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf(":heavy_check_mark: Added media with title \"%s\" to queue at position %d", media.Title, len(queues[message.GuildID])))
-
-	// TODO: Join channel (if not already in one)
-	// if not already in one, then start goroutine that takes care of streaming the queue. (guild worker)?
-	// XXX: move this in side "if queues[message.GuildID] == nil {" block?
-	//worker(bot, message.GuildID, message.ChannelID)
+	_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf(":musical_note: Added media with title \"%s\" to queue at position %d", media.Title, len(queues[message.GuildID])))
 }
 
 func GetVoiceChannelWhereMessageAuthorIs(bot *discordgo.Session, message *discordgo.MessageCreate) (string, error) {
