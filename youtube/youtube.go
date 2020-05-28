@@ -85,13 +85,6 @@ func (svc *Service) Download(result *SearchResult) (*core.Media, error) {
 	} else {
 		return nil, errors.New("video url returned non-200 status code")
 	}
-
-	//if err := yt.StartDownloadWithQuality(fileName, "low"); err != nil {
-	//	return nil, err
-	//}
-	//// Wait until download is completed
-	//for <-yt.DownloadPercent != 100 {}
-
 	return core.NewMedia(result.Title, destinationFileName), nil
 }
 

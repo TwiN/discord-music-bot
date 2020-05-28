@@ -14,7 +14,6 @@ import (
 	"strings"
 	"sync"
 	"syscall"
-	"time"
 )
 
 const (
@@ -95,36 +94,51 @@ func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCrea
 	}
 	log.Printf("[%s] Found video titled \"%s\" from query \"%s\"", guildName, result.Title, query)
 
-	// Download the video
-	log.Printf("[%s] Downloading video with title \"%s\"", guildName, result.Title)
-	media, err := youtubeService.Download(result)
-	if err != nil {
-		log.Printf("[%s] Failed to download video: %s", guildName, err.Error())
-		_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to search for video based on query \"%s\"", query))
-		return
-	}
-	log.Printf("[%s] Downloaded video with title \"%s\" at \"%s\"", guildName, media.Title, media.FilePath)
+	var media *core.Media
+	// Check if the media already exists
+	_, err = os.Stat(fmt.Sprintf("%s.mp3", result.VideoId))
+	if err == nil && os.IsNotExist(err) {
+		media = core.NewMedia(result.Title, fmt.Sprintf("%s.mp3", result.VideoId))
+		log.Printf("[%s] Skipping download because media titled \"%s\" is already present at \"%s\"", guildName, result.Title, media.FilePath)
+	} else {
+		// Download the video
+		log.Printf("[%s] Downloading video with title \"%s\"", guildName, result.Title)
+		media, err = youtubeService.Download(result)
+		if err != nil {
+			log.Printf("[%s] Failed to download video: %s", guildName, err.Error())
+			_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to search for video based on query \"%s\"", query))
+			return
+		}
+		log.Printf("[%s] Downloaded video with title \"%s\" at \"%s\"", guildName, media.Title, media.FilePath)
 
-	// Convert video to audio
-	log.Printf("[%s] Extracting audio from video with title \"%s\"", guildName, result.Title)
-	err = ffmpeg.ConvertVideoToAudio(media)
-	if err != nil {
-		log.Printf("[%s] Failed to convert video to audio: %s", guildName, err.Error())
-		_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to convert video to audio: %s", err.Error()))
-		_ = os.Remove(media.FilePath)
-		return
+		// Convert video to audio
+		log.Printf("[%s] Extracting audio from video with title \"%s\"", guildName, result.Title)
+		err = ffmpeg.ConvertVideoToAudio(media)
+		if err != nil {
+			log.Printf("[%s] Failed to convert video to audio: %s", guildName, err.Error())
+			_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to convert video to audio: %s", err.Error()))
+			_ = os.Remove(media.FilePath)
+			return
+		}
+		log.Printf("[%s] Extracted audio from video with title \"%s\" into \"%s\"", guildName, result.Title, media.FilePath)
 	}
-	log.Printf("[%s] Extracted audio from video with title \"%s\" into \"%s\"", guildName, result.Title, media.FilePath)
 
 	// Add song to guild queue
-	//queuesMutex.Lock()
-	//defer queuesMutex.Unlock()
+	createNewWorker := false
+	queuesMutex.Lock()
+	defer queuesMutex.Unlock()
 	if queues[message.GuildID] == nil {
 		queues[message.GuildID] = make(chan *core.Media, MaxQueueSize)
 		// If the channel was nil, it means that there was no worker
-		fmt.Println("starting worker")
+		createNewWorker = true
+	}
+	queues[message.GuildID] <- media
+	log.Printf("[%s] Added media with title \"%s\" to queue at position %d", guildName, media.Title, len(queues[message.GuildID]))
+	_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf(":musical_note: Added media with title \"%s\" to queue at position %d", media.Title, len(queues[message.GuildID])))
+
+	if createNewWorker {
+		log.Printf("[%s] Starting worker", guildName)
 		go func() {
-			time.Sleep(500 * time.Millisecond)
 			err = worker(bot, message.GuildID, voiceChannelId)
 			if err != nil {
 				log.Printf("[%s] Failed to start worker: %s", guildName, err.Error())
@@ -134,9 +148,6 @@ func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCrea
 			}
 		}()
 	}
-	queues[message.GuildID] <- media
-	log.Printf("[%s] Added media with title \"%s\" to queue at position %d", guildName, media.Title, len(queues[message.GuildID]))
-	_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf(":musical_note: Added media with title \"%s\" to queue at position %d", media.Title, len(queues[message.GuildID])))
 }
 
 func GetVoiceChannelWhereMessageAuthorIs(bot *discordgo.Session, message *discordgo.MessageCreate) (string, error) {
