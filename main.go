@@ -42,6 +42,15 @@ func main() {
 		panic(err)
 	}
 	defer bot.Close()
+	defer func() {
+		if actionQueues != nil {
+			for guildId, actions := range actionQueues {
+				log.Printf("Shutting down, stopping queues for guild %s", guildNames[guildId])
+				actions.Stop()
+			}
+		}
+		time.Sleep(2 * time.Second)
+	}()
 
 	bot.AddHandler(HandleMessage)
 	log.Println("Connected successfully")

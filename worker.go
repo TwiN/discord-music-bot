@@ -2,8 +2,8 @@ package main
 
 import (
 	"github.com/TwinProduction/discord-music-bot/core"
+	"github.com/TwinProduction/discord-music-bot/dca"
 	"github.com/bwmarrin/discordgo"
-	"github.com/jonas747/dca"
 	"io"
 	"log"
 	"os"
@@ -11,7 +11,6 @@ import (
 )
 
 func worker(bot *discordgo.Session, guildId, channelId string) error {
-	time.Sleep(250 * time.Millisecond)
 	guildName := GetGuildNameById(bot, guildId)
 	// See https://github.com/Malchemy/DankMemes/blob/master/sound.go#L26
 	voice, err := bot.ChannelVoiceJoin(guildId, channelId, false, false)
@@ -33,6 +32,7 @@ func worker(bot *discordgo.Session, guildId, channelId string) error {
 	}
 	time.Sleep(500 * time.Millisecond)
 
+	log.Printf("[%s] Closing channel", guildName)
 	close(queues[guildId])
 	queues[guildId] = nil
 	actionQueues[guildId] = nil
@@ -41,7 +41,6 @@ func worker(bot *discordgo.Session, guildId, channelId string) error {
 
 func play(voice *discordgo.VoiceConnection, media *core.Media, guildName string, actions *core.Actions) {
 	options := dca.StdEncodeOptions
-	options.RawOutput = true
 	options.BufferedFrames = 200
 	options.Bitrate = 96
 
@@ -51,6 +50,8 @@ func play(voice *discordgo.VoiceConnection, media *core.Media, guildName string,
 		return
 	}
 	defer encodeSession.Cleanup()
+
+	time.Sleep(500 * time.Millisecond)
 
 	done := make(chan error)
 	dca.NewStream(encodeSession, voice, done)
