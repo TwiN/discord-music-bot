@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/TwinProduction/discord-music-bot/config"
 	"github.com/TwinProduction/discord-music-bot/core"
-	"github.com/TwinProduction/discord-music-bot/ffmpeg"
 	"github.com/TwinProduction/discord-music-bot/youtube"
 	"github.com/bwmarrin/discordgo"
 	"log"
@@ -14,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"syscall"
+	"time"
 )
 
 const (
@@ -24,8 +24,9 @@ const (
 var (
 	ErrUserNotInVoiceChannel = errors.New("couldn't find voice channel with user in it")
 
-	queues      = make(map[string]chan *core.Media)
-	queuesMutex = sync.RWMutex{}
+	actionQueues = make(map[string]*core.Actions)
+	queues       = make(map[string]chan *core.Media)
+	queuesMutex  = sync.RWMutex{}
 
 	// guildNames is a mapping between guild id and guild name
 	guildNames = make(map[string]string)
@@ -35,7 +36,7 @@ var (
 
 func main() {
 	config.Load()
-	youtubeService = youtube.NewService(config.Get().YoutubeApiKey)
+	youtubeService = youtube.NewService()
 	bot, err := Connect(config.Get().DiscordToken)
 	if err != nil {
 		panic(err)
@@ -65,6 +66,14 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 			HandleYoutubeCommand(bot, message, query)
 			return
 		}
+		if command == "skip" {
+			actionQueues[message.GuildID].Skip()
+			return
+		}
+		if command == "stop" {
+			actionQueues[message.GuildID].Stop()
+			return
+		}
 	}
 }
 
@@ -84,44 +93,20 @@ func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCrea
 	}
 	log.Printf("[%s] Found user %s in voice channel %s", guildName, message.Author.Username, voiceChannelId)
 
-	// Search for video
 	log.Printf("[%s] Searching for \"%s\"", guildName, query)
-	result, err := youtubeService.Search(query)
+	botMessage, _ := bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf(":mag: Searching for `%s`...", query))
+	media, err := youtubeService.SearchAndDownload(query)
 	if err != nil {
-		log.Printf("[%s] Failed to search for video: %s", guildName, err.Error())
-		_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to search for video: %s", err.Error()))
+		log.Printf("[%s] Unable to find video for query \"%s\": %s", guildName, query, err.Error())
+		_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to find video for query `%s`: %s", query, err.Error()))
 		return
 	}
-	log.Printf("[%s] Found video titled \"%s\" from query \"%s\"", guildName, result.Title, query)
-
-	var media *core.Media
-	// Check if the media already exists
-	_, err = os.Stat(fmt.Sprintf("%s.mp3", result.VideoId))
-	if err == nil && os.IsNotExist(err) {
-		media = core.NewMedia(result.Title, fmt.Sprintf("%s.mp3", result.VideoId))
-		log.Printf("[%s] Skipping download because media titled \"%s\" is already present at \"%s\"", guildName, result.Title, media.FilePath)
-	} else {
-		// Download the video
-		log.Printf("[%s] Downloading video with title \"%s\"", guildName, result.Title)
-		media, err = youtubeService.Download(result)
-		if err != nil {
-			log.Printf("[%s] Failed to download video: %s", guildName, err.Error())
-			_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to search for video based on query \"%s\"", query))
-			return
-		}
-		log.Printf("[%s] Downloaded video with title \"%s\" at \"%s\"", guildName, media.Title, media.FilePath)
-
-		// Convert video to audio
-		log.Printf("[%s] Extracting audio from video with title \"%s\"", guildName, result.Title)
-		err = ffmpeg.ConvertVideoToAudio(media)
-		if err != nil {
-			log.Printf("[%s] Failed to convert video to audio: %s", guildName, err.Error())
-			_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to convert video to audio: %s", err.Error()))
-			_ = os.Remove(media.FilePath)
-			return
-		}
-		log.Printf("[%s] Extracted audio from video with title \"%s\" into \"%s\"", guildName, result.Title, media.FilePath)
-	}
+	log.Printf("[%s] Successfully searched for and extracted audio from video with title \"%s\" to \"%s\"", guildName, media.Title, media.FilePath)
+	botMessage, _ = bot.ChannelMessageEdit(botMessage.ChannelID, botMessage.ID, fmt.Sprintf(":white_check_mark: Found matching video titled `%s`!", media.Title))
+	go func(bot *discordgo.Session, message *discordgo.Message) {
+		time.Sleep(time.Second)
+		_ = bot.ChannelMessageDelete(botMessage.ChannelID, botMessage.ID)
+	}(bot, botMessage)
 
 	// Add song to guild queue
 	createNewWorker := false
@@ -129,12 +114,20 @@ func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCrea
 	defer queuesMutex.Unlock()
 	if queues[message.GuildID] == nil {
 		queues[message.GuildID] = make(chan *core.Media, MaxQueueSize)
+		actionQueues[message.GuildID] = core.NewActions()
 		// If the channel was nil, it means that there was no worker
 		createNewWorker = true
 	}
 	queues[message.GuildID] <- media
 	log.Printf("[%s] Added media with title \"%s\" to queue at position %d", guildName, media.Title, len(queues[message.GuildID]))
-	_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf(":musical_note: Added media with title \"%s\" to queue at position %d", media.Title, len(queues[message.GuildID])))
+	_, _ = bot.ChannelMessageSendEmbed(message.ChannelID, &discordgo.MessageEmbed{
+		URL:         media.URL,
+		Title:       media.Title,
+		Description: fmt.Sprintf("Position in queue: %d", len(queues[message.GuildID])),
+		Thumbnail: &discordgo.MessageEmbedThumbnail{
+			URL: media.Thumbnail,
+		},
+	})
 
 	if createNewWorker {
 		log.Printf("[%s] Starting worker", guildName)

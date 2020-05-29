@@ -14,12 +14,14 @@ Minimal music bot for Discord.
 5. Add music bot to server
 
 
-### Youtube
+### Usage
 
-In order to use Youtube's API, you must create a new project....
+```
+!yt Haddaway - what is love
+```
 
-1. Go to https://console.developers.google.com/projectcreate
-2. Create a new project
-3. Enable the `YouTube Data API v3` API in your project
-4. Click on `Create credentials`
-5. Save the API Key and set it as the `YOUTUBE_API_KEY` environment variable
+
+## Prerequisites
+
+- youtube-dl
+- ffmpeg
