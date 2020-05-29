@@ -1,6 +1,17 @@
 # discord-music-bot
 
-Minimal music bot for Discord.
+[![Docker pulls](https://img.shields.io/docker/pulls/twinproduction/discord-music-bot)](https://cloud.docker.com/repository/docker/twinproduction/discord-music-bot)
+
+This is a minimal music bot for Discord that support streaming to multiple servers concurrently.  
+
+It uses `youtube-dl` to search and download the video as well as `ffmpeg` to convert and stream the audio.
+
+
+## Usage
+
+| Environment variable | Description | Required | Default |
+| --- | --- | --- | --- |
+| DISCORD_BOT_TOKEN | Discord bot token | yes | `""` |
 
 
 ## Getting started
@@ -14,10 +25,25 @@ Minimal music bot for Discord.
 5. Add music bot to server
 
 
-### Usage
+### Bot commands
+
+#### Adding a song to the queue
 
 ```
-!yt Haddaway - what is love
+!youtube remember the name
+```
+
+
+#### Skipping the current song
+
+```
+!skip
+```
+
+
+#### Skipping all songs in the queue
+```
+!stop
 ```
 
 

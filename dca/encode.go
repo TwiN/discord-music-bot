@@ -21,16 +21,15 @@ var (
 
 // EncodeOptions is a set of options for encoding dca
 type EncodeOptions struct {
-	Volume           int    // change audio volume (256=normal)
-	FrameRate        int    // audio sampling rate (ex 48000)
-	FrameDuration    int    // audio frame duration can be 20, 40, or 60 (ms)
-	Bitrate          int    // audio encoding bitrate in kb/s can be 8 - 128
-	PacketLoss       int    // expected packet loss percentage
-	CoverFormat      string // Format the cover art will be encoded with (ex "jpeg)
-	CompressionLevel int    // Compression level, higher is better qualiy but slower encoding (0 - 10)
-	BufferedFrames   int    // How big the frame buffer should be
-	VariableBitrate  bool   // Wether vbr is used or not (variable bitrate)
-	Threads          int    // Number of threads to use, 0 for auto
+	Volume           int  // change audio volume (256=normal)
+	FrameRate        int  // audio sampling rate (ex 48000)
+	FrameDuration    int  // audio frame duration can be 20, 40, or 60 (ms)
+	Bitrate          int  // audio encoding bitrate in kb/s can be 8 - 128
+	PacketLoss       int  // expected packet loss percentage
+	CompressionLevel int  // Compression level, higher is better quality but slower encoding (0 - 10)
+	BufferedFrames   int  // How big the frame buffer should be
+	VariableBitrate  bool // Whether vbr is used or not (variable bitrate)
+	Threads          int  // Number of threads to use, 0 for auto
 }
 
 // StdEncodeOptions is the standard options for encoding

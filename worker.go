@@ -41,7 +41,9 @@ func worker(bot *discordgo.Session, guildId, channelId string) error {
 
 func play(voice *discordgo.VoiceConnection, media *core.Media, guildName string, actions *core.Actions) {
 	options := dca.StdEncodeOptions
-	options.BufferedFrames = 200
+	options.BufferedFrames = 100
+	options.FrameDuration = 20
+	options.CompressionLevel = 5
 	options.Bitrate = 96
 
 	encodeSession, err := dca.EncodeFile(media.FilePath, options)
