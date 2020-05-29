@@ -23,5 +23,21 @@ Minimal music bot for Discord.
 
 ## Prerequisites
 
+If you want to run it locally, you'll need the following applications:
 - youtube-dl
 - ffmpeg
+
+
+## Docker
+
+Building the Docker image is done as following:
+
+```
+docker build . -t discord-music-bot
+```
+
+You can then run the container with the following command:
+
+```
+docker run -e DISCORD_BOT_TOKEN=secret --name discord-music-bot discord-music-bot
+```

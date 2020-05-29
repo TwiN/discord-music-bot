@@ -46,10 +46,12 @@ func main() {
 		if actionQueues != nil {
 			for guildId, actions := range actionQueues {
 				log.Printf("Shutting down, stopping queues for guild %s", guildNames[guildId])
-				actions.Stop()
+				if actions != nil {
+					actions.Stop()
+				}
 			}
 		}
-		time.Sleep(2 * time.Second)
+		time.Sleep(1 * time.Second)
 	}()
 
 	bot.AddHandler(HandleMessage)
