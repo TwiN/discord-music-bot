@@ -70,7 +70,7 @@ func (svc *Service) Download(result *SearchResult) (*core.Media, error) {
 		return nil, err
 	}
 	videoFile := videoFile{}
-	extractVideoFileUrl(data, &videoFile)
+	extractVideoFile(data, &videoFile)
 	if len(videoFile.URL) == 0 {
 		return nil, ErrNoVideoLinkFound
 	}
@@ -117,10 +117,10 @@ func (svc *Service) getVideoInfo(result *SearchResult) (string, error) {
 	return data, nil
 }
 
-// extractVideoFileUrl is literally garbage
+// extractVideoFile is literally garbage
 // "If you know it's garbage, why did you make it?"
 // Because Youtube's API keeps changing, and as long as they don't modify the field names, this will never break.
-func extractVideoFileUrl(data string, videoFile *videoFile) {
+func extractVideoFile(data string, videoFile *videoFile) {
 	data = strings.ReplaceAll(data, "\\u0026", "&")
 	start := strings.Index(data, "{")
 	if len(data) < start+1 {
@@ -134,7 +134,7 @@ func extractVideoFileUrl(data string, videoFile *videoFile) {
 			return
 		}
 	}
-	extractVideoFileUrl(data[start+1:], videoFile)
+	extractVideoFile(data[start+1:], videoFile)
 }
 
 type videoFile struct {
