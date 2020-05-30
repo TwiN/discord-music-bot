@@ -6,25 +6,48 @@ import (
 	"fmt"
 	"github.com/TwinProduction/discord-music-bot/core"
 	"log"
-	"net/http"
 	"os/exec"
 	"strings"
+	"time"
 )
 
 type Service struct {
-	client *http.Client
+	maxDurationInSeconds int
 }
 
-func NewService() *Service {
+func NewService(maxDurationInSeconds int) *Service {
 	return &Service{
-		client: &http.Client{Transport: &http.Transport{}},
+		maxDurationInSeconds: maxDurationInSeconds,
 	}
 }
 
+type SearchAndDownloadResult struct {
+	Media *core.Media
+	Error error
+}
+
 func (svc *Service) SearchAndDownload(query string) (*core.Media, error) {
+	timeout := make(chan bool, 1)
+	result := make(chan SearchAndDownloadResult, 1)
+	go func() {
+		time.Sleep(30 * time.Second)
+		timeout <- true
+	}()
+	go func() {
+		result <- svc.DoSearchAndDownload(query)
+	}()
+	select {
+	case <-timeout:
+		return nil, errors.New("timed out")
+	case result := <-result:
+		return result.Media, result.Error
+	}
+}
+
+func (svc *Service) DoSearchAndDownload(query string) SearchAndDownloadResult {
 	youtubeDownloader, err := exec.LookPath("youtube-dl")
 	if err != nil {
-		return nil, errors.New("youtube-dl not found in path")
+		return SearchAndDownloadResult{Error: errors.New("youtube-dl not found in path")}
 	} else {
 		args := []string{
 			// TODO: sanitize input... lol
@@ -32,7 +55,7 @@ func (svc *Service) SearchAndDownload(query string) (*core.Media, error) {
 			"--extract-audio",
 			"--audio-format", "opus",
 			"--no-playlist",
-			"--match-filter", "duration < 300",
+			"--match-filter", fmt.Sprintf("duration < %d & !is_live", svc.maxDurationInSeconds),
 			"--max-downloads", "1",
 			"--output", "%(id)s.opus",
 			"--print-json",
@@ -41,21 +64,24 @@ func (svc *Service) SearchAndDownload(query string) (*core.Media, error) {
 		log.Printf("youtube-dl %s", strings.Join(args, " "))
 		cmd := exec.Command(youtubeDownloader, args...)
 		if data, err := cmd.Output(); err != nil && err.Error() != "exit status 101" {
-			return nil, fmt.Errorf("failed to search and download audio: %s\n%s", err.Error(), string(data))
+			return SearchAndDownloadResult{Error: fmt.Errorf("failed to search and download audio: %s\n%s", err.Error(), string(data))}
 		} else {
 			videoMetadata := VideoMetadata{}
 			err = json.Unmarshal(data, &videoMetadata)
 			if err != nil {
-				return nil, fmt.Errorf("failed to unmarshal video metadata: %s", err.Error())
+				fmt.Println(string(data))
+				return SearchAndDownloadResult{Error: fmt.Errorf("failed to unmarshal video metadata: %s", err.Error())}
 			}
-			return core.NewMedia(
-				videoMetadata.Title,
-				fmt.Sprintf("%s.opus", videoMetadata.ID),
-				videoMetadata.Uploader,
-				fmt.Sprintf("https://www.youtube.com/watch?v=%s", videoMetadata.ID),
-				videoMetadata.Thumbnail,
-				videoMetadata.Duration,
-			), nil
+			return SearchAndDownloadResult{
+				Media: core.NewMedia(
+					videoMetadata.Title,
+					fmt.Sprintf("%s.opus", videoMetadata.ID),
+					videoMetadata.Uploader,
+					fmt.Sprintf("https://www.youtube.com/watch?v=%s", videoMetadata.ID),
+					videoMetadata.Thumbnail,
+					videoMetadata.Duration,
+				),
+			}
 		}
 	}
 }

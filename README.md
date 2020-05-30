@@ -12,6 +12,7 @@ It uses `youtube-dl` to search and download the video as well as `ffmpeg` to con
 | Environment variable | Description | Required | Default |
 | --- | --- | --- | --- |
 | DISCORD_BOT_TOKEN | Discord bot token | yes | `""` |
+| MAXIMUM_AUDIO_DURATION_IN_SECONDS | Maximum duration of audio clips in second | no | `300` |
 
 
 ## Getting started

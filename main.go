@@ -38,7 +38,7 @@ var (
 
 func main() {
 	config.Load()
-	youtubeService = youtube.NewService()
+	youtubeService = youtube.NewService(config.Get().MaximumAudioDurationInSeconds)
 	bot, err := Connect(config.Get().DiscordToken)
 	if err != nil {
 		panic(err)
