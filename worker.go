@@ -20,21 +20,21 @@ func worker(bot *discordgo.Session, guildId, channelId string) error {
 	defer voice.Disconnect()
 	voice.Speaking(true)
 	defer voice.Speaking(false)
-	for media := range queues[guildId] {
+	for media := range mediaQueues[guildId] {
 		if !actionQueues[guildId].Stopped {
 			play(voice, media, guildName, actionQueues[guildId])
 		}
 		_ = os.Remove(media.FilePath)
-		if len(queues[guildId]) == 0 {
+		if len(mediaQueues[guildId]) == 0 {
 			break
 		}
-		log.Printf("[%s] There are currently %d medias in the queue", guildName, len(queues[guildId]))
+		log.Printf("[%s] There are currently %d medias in the queue", guildName, len(mediaQueues[guildId]))
 	}
 	time.Sleep(500 * time.Millisecond)
 
 	log.Printf("[%s] Closing channel", guildName)
-	close(queues[guildId])
-	queues[guildId] = nil
+	close(mediaQueues[guildId])
+	mediaQueues[guildId] = nil
 	actionQueues[guildId] = nil
 	return nil
 }

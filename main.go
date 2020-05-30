@@ -24,9 +24,11 @@ const (
 var (
 	ErrUserNotInVoiceChannel = errors.New("couldn't find voice channel with user in it")
 
-	actionQueues = make(map[string]*core.Actions)
-	queues       = make(map[string]chan *core.Media)
-	queuesMutex  = sync.RWMutex{}
+	actionQueues      = make(map[string]*core.Actions)
+	actionQueuesMutex = sync.RWMutex{}
+
+	mediaQueues      = make(map[string]chan *core.Media)
+	mediaQueuesMutex = sync.RWMutex{}
 
 	// guildNames is a mapping between guild id and guild name
 	guildNames = make(map[string]string)
@@ -89,7 +91,10 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 }
 
 func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCreate, query string) {
-	if len(queues[message.GuildID]) >= MaxQueueSize {
+	mediaQueuesMutex.Lock()
+	queueSize := len(mediaQueues[message.GuildID])
+	mediaQueuesMutex.Unlock()
+	if queueSize >= MaxQueueSize {
 		_, _ = bot.ChannelMessageSend(message.ChannelID, "The queue is full!")
 		return
 	}
@@ -115,26 +120,28 @@ func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCrea
 	log.Printf("[%s] Successfully searched for and extracted audio from video with title \"%s\" to \"%s\"", guildName, media.Title, media.FilePath)
 	botMessage, _ = bot.ChannelMessageEdit(botMessage.ChannelID, botMessage.ID, fmt.Sprintf(":white_check_mark: Found matching video titled `%s`!", media.Title))
 	go func(bot *discordgo.Session, message *discordgo.Message) {
-		time.Sleep(time.Second)
+		time.Sleep(3 * time.Second)
 		_ = bot.ChannelMessageDelete(botMessage.ChannelID, botMessage.ID)
 	}(bot, botMessage)
 
 	// Add song to guild queue
 	createNewWorker := false
-	queuesMutex.Lock()
-	defer queuesMutex.Unlock()
-	if queues[message.GuildID] == nil {
-		queues[message.GuildID] = make(chan *core.Media, MaxQueueSize)
+	mediaQueuesMutex.Lock()
+	if mediaQueues[message.GuildID] == nil {
+		mediaQueues[message.GuildID] = make(chan *core.Media, MaxQueueSize)
+		actionQueuesMutex.Lock()
 		actionQueues[message.GuildID] = core.NewActions()
+		actionQueuesMutex.Unlock()
 		// If the channel was nil, it means that there was no worker
 		createNewWorker = true
 	}
-	queues[message.GuildID] <- media
-	log.Printf("[%s] Added media with title \"%s\" to queue at position %d", guildName, media.Title, len(queues[message.GuildID]))
+	mediaQueues[message.GuildID] <- media
+	mediaQueuesMutex.Unlock()
+	log.Printf("[%s] Added media with title \"%s\" to queue at position %d", guildName, media.Title, len(mediaQueues[message.GuildID]))
 	_, _ = bot.ChannelMessageSendEmbed(message.ChannelID, &discordgo.MessageEmbed{
 		URL:         media.URL,
 		Title:       media.Title,
-		Description: fmt.Sprintf("Position in queue: %d", len(queues[message.GuildID])),
+		Description: fmt.Sprintf("Position in queue: %d", len(mediaQueues[message.GuildID])),
 		Thumbnail: &discordgo.MessageEmbedThumbnail{
 			URL: media.Thumbnail,
 		},
