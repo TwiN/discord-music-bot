@@ -10,7 +10,7 @@ ENV APP_HOME=/app
 WORKDIR ${APP_HOME}
 RUN apk --update add --no-cache ca-certificates ffmpeg opus python
 COPY --from=builder /app/bin/discord-music-bot ./bin/discord-music-bot
-RUN wget https://yt-dl.org/downloads/latest/youtube-dl -O /usr/bin/youtube-dl
+RUN wget --no-check-certificate https://yt-dl.org/downloads/latest/youtube-dl -O /usr/bin/youtube-dl
 RUN chmod +x /usr/bin/youtube-dl
 RUN youtube-dl --version
 ENTRYPOINT ["/app/bin/discord-music-bot"]
