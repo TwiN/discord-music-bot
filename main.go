@@ -75,17 +75,33 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 		command := strings.Replace(strings.Split(message.Content, " ")[0], CommandPrefix, "", 1)
 		query := strings.TrimSpace(strings.Replace(message.Content, fmt.Sprintf("%s%s", CommandPrefix, command), "", 1))
 		command = strings.ToLower(command)
-		if command == "youtube" || command == "yt" {
+		switch command {
+		case "youtube", "yt":
 			HandleYoutubeCommand(bot, message, query)
-			return
-		}
-		if command == "skip" {
+		case "skip":
+			actionQueuesMutex.Lock()
 			actionQueues[message.GuildID].Skip()
-			return
-		}
-		if command == "stop" {
+			actionQueuesMutex.Unlock()
+		case "stop":
+			actionQueuesMutex.Lock()
 			actionQueues[message.GuildID].Stop()
-			return
+			actionQueuesMutex.Unlock()
+		case "info":
+			_, _ = bot.ChannelMessageSend(message.ChannelID, "See https://github.com/TwinProduction/discord-music-bot")
+		case "health":
+			latency := bot.HeartbeatLatency()
+			_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Heartbeat latency: %s", latency))
+		case "help":
+			_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf(`
+__**Commands**__
+**%syoutube or %syt**: Searches for a song on youtube and adds it to the playlist
+**%sskip**: Skip the current audio clip
+**%sstop**: Flush the bot's playlist and disconnect it from the voice channel'
+**%sinfo**: Provides general information about the bot
+**%shealth**: Provides information about the health of the bot
+
+Bugs to report? Create an issue at https://github.com/TwinProduction/discord-music-bot
+`, CommandPrefix, CommandPrefix, CommandPrefix, CommandPrefix, CommandPrefix, CommandPrefix))
 		}
 	}
 }
