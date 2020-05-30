@@ -121,10 +121,13 @@ func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCrea
 	voiceChannelId, err := GetVoiceChannelWhereMessageAuthorIs(bot, message)
 	if err != nil {
 		log.Printf("[%s] Failed to find voice channel where message author is located: %s", guildName, err.Error())
+		_ = bot.MessageReactionAdd(message.ChannelID, message.ID, "❌")
 		_, _ = bot.ChannelMessageSend(message.ChannelID, err.Error())
 		return
+	} else {
+		log.Printf("[%s] Found user %s in voice channel %s", guildName, message.Author.Username, voiceChannelId)
+		_ = bot.MessageReactionAdd(message.ChannelID, message.ID, "✅")
 	}
-	log.Printf("[%s] Found user %s in voice channel %s", guildName, message.Author.Username, voiceChannelId)
 
 	log.Printf("[%s] Searching for \"%s\"", guildName, query)
 	botMessage, _ := bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf(":mag: Searching for `%s`...", query))
