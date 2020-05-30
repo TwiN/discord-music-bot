@@ -44,6 +44,7 @@ func main() {
 		panic(err)
 	}
 	defer bot.Close()
+	_ = bot.UpdateListeningStatus(fmt.Sprintf("%shelp", CommandPrefix))
 	defer func() {
 		if actionQueues != nil {
 			for guildId, actions := range actionQueues {
