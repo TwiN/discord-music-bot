@@ -68,3 +68,10 @@ You can then run the container with the following command:
 ```
 docker run -e DISCORD_BOT_TOKEN=secret --name discord-music-bot discord-music-bot
 ```
+
+
+## FAQ
+
+### How do I add my bot to a new server?
+
+See step 4 of the [Discord](#discord) section.
