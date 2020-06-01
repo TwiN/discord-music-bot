@@ -28,23 +28,32 @@ It uses `youtube-dl` to search and download the video as well as `ffmpeg` to con
 
 ### Bot commands
 
-#### Adding a song to the queue
+#### Add a song to the queue
 
 ```
 !youtube remember the name
+!yt what is love
 ```
 
 
-#### Skipping the current song
+#### Skip the current song
 
 ```
 !skip
 ```
 
 
-#### Skipping all songs in the queue
+#### Skip all songs in the queue
+
 ```
 !stop
+```
+
+
+#### Display all commands
+
+```
+!help
 ```
 
 
