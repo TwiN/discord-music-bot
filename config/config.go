@@ -12,6 +12,7 @@ type Config struct {
 
 var cfg *Config
 
+// Load initializes the configuration
 func Load() {
 	cfg = &Config{
 		DiscordToken: os.Getenv("DISCORD_BOT_TOKEN"),
