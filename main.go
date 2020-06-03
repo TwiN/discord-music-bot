@@ -17,8 +17,7 @@ import (
 )
 
 const (
-	CommandPrefix = "!"
-	MaxQueueSize  = 10
+	MaxQueueSize = 10
 )
 
 var (
@@ -44,7 +43,7 @@ func main() {
 		panic(err)
 	}
 	defer bot.Close()
-	_ = bot.UpdateListeningStatus(fmt.Sprintf("%shelp", CommandPrefix))
+	_ = bot.UpdateListeningStatus(fmt.Sprintf("%shelp", config.Get().CommandPrefix))
 	defer func() {
 		if actionQueues != nil {
 			for guildId, actions := range actionQueues {
@@ -69,12 +68,13 @@ func main() {
 }
 
 func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
+	commandPrefix := config.Get().CommandPrefix
 	if message.Author.Bot || message.Author.ID == bot.State.User.ID {
 		return
 	}
-	if strings.HasPrefix(message.Content, CommandPrefix) {
-		command := strings.Replace(strings.Split(message.Content, " ")[0], CommandPrefix, "", 1)
-		query := strings.TrimSpace(strings.Replace(message.Content, fmt.Sprintf("%s%s", CommandPrefix, command), "", 1))
+	if strings.HasPrefix(message.Content, commandPrefix) {
+		command := strings.Replace(strings.Split(message.Content, " ")[0], commandPrefix, "", 1)
+		query := strings.TrimSpace(strings.Replace(message.Content, fmt.Sprintf("%s%s", commandPrefix, command), "", 1))
 		command = strings.ToLower(command)
 		switch command {
 		case "youtube", "yt":
@@ -102,7 +102,7 @@ __**Commands**__
 **%shealth**: Provides information about the health of the bot
 
 Bugs to report? Create an issue at https://github.com/TwinProduction/discord-music-bot
-`, CommandPrefix, CommandPrefix, CommandPrefix, CommandPrefix, CommandPrefix, CommandPrefix))
+`, commandPrefix, commandPrefix, commandPrefix, commandPrefix, commandPrefix, commandPrefix))
 		}
 	}
 }
