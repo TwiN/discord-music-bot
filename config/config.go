@@ -34,6 +34,7 @@ func Load() {
 	}
 }
 
+// Get returns the configuration
 func Get() *Config {
 	return cfg
 }
