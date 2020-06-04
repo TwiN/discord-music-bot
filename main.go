@@ -81,11 +81,15 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 			HandleYoutubeCommand(bot, message, query)
 		case "skip":
 			actionQueuesMutex.Lock()
-			actionQueues[message.GuildID].Skip()
+			if actionQueues[message.GuildID] != nil {
+				actionQueues[message.GuildID].Skip()
+			}
 			actionQueuesMutex.Unlock()
 		case "stop":
 			actionQueuesMutex.Lock()
-			actionQueues[message.GuildID].Stop()
+			if actionQueues[message.GuildID] != nil {
+				actionQueues[message.GuildID].Stop()
+			}
 			actionQueuesMutex.Unlock()
 		case "info":
 			_, _ = bot.ChannelMessageSend(message.ChannelID, "See https://github.com/TwinProduction/discord-music-bot")
