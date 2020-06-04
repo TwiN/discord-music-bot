@@ -68,7 +68,17 @@ If you want to run it locally, you'll need the following applications:
 - ffmpeg
 
 
+
 ## Docker
+
+### Pulling from Docker Hub
+
+```
+docker pull twinproduction/discord-music-bot
+```
+
+
+### Building image locally
 
 Building the Docker image is done as following:
 
