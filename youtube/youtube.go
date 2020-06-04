@@ -45,6 +45,7 @@ func (svc *Service) SearchAndDownload(query string) (*core.Media, error) {
 }
 
 func (svc *Service) DoSearchAndDownload(query string) SearchAndDownloadResult {
+	start := time.Now()
 	youtubeDownloader, err := exec.LookPath("youtube-dl")
 	if err != nil {
 		return SearchAndDownloadResult{Error: errors.New("youtube-dl not found in path")}
@@ -57,7 +58,7 @@ func (svc *Service) DoSearchAndDownload(query string) SearchAndDownloadResult {
 			"--no-playlist",
 			"--match-filter", fmt.Sprintf("duration < %d & !is_live", svc.maxDurationInSeconds),
 			"--max-downloads", "1",
-			"--output", "%(id)s.opus",
+			"--output", fmt.Sprintf("%d-%%(id)s.opus", start.Unix()),
 			"--print-json",
 			"--ignore-errors", // Ignores unavailable videos
 		}
@@ -75,7 +76,7 @@ func (svc *Service) DoSearchAndDownload(query string) SearchAndDownloadResult {
 			return SearchAndDownloadResult{
 				Media: core.NewMedia(
 					videoMetadata.Title,
-					fmt.Sprintf("%s.opus", videoMetadata.ID),
+					fmt.Sprintf("%d-%s.opus", start.Unix(), videoMetadata.ID),
 					videoMetadata.Uploader,
 					fmt.Sprintf("https://www.youtube.com/watch?v=%s", videoMetadata.ID),
 					videoMetadata.Thumbnail,
