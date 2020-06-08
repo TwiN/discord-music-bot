@@ -13,7 +13,7 @@ It uses `youtube-dl` to search and download the video as well as `ffmpeg` to con
 | --- | --- | --- | --- |
 | DISCORD_BOT_TOKEN | Discord bot token | yes | `""` |
 | COMMAND_PREFIX | Character prepending all bot commands. Must be exactly 1 character, or it will default to `!` | no | `!` |
-| MAXIMUM_AUDIO_DURATION_IN_SECONDS | Maximum duration of audio clips in second | no | `300` |
+| MAXIMUM_AUDIO_DURATION_IN_SECONDS | Maximum duration of audio clips in second | no | `480` |
 
 
 ## Getting started

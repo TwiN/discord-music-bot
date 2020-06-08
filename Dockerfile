@@ -6,6 +6,8 @@ RUN CGO_ENABLED=0 GOOS=linux go build -mod vendor -a -installsuffix cgo -o bin/d
 
 FROM alpine:3.7
 ENV DISCORD_BOT_TOKEN=""
+ENV COMMAND_PREFIX=""
+ENV MAXIMUM_AUDIO_DURATION_IN_SECONDS=""
 ENV APP_HOME=/app
 WORKDIR ${APP_HOME}
 RUN apk --update add --no-cache ca-certificates ffmpeg opus python
