@@ -13,7 +13,7 @@ import (
 func worker(bot *discordgo.Session, guildId, channelId string) error {
 	guildName := GetGuildNameById(bot, guildId)
 	// See https://github.com/Malchemy/DankMemes/blob/master/sound.go#L26
-	voice, err := bot.ChannelVoiceJoin(guildId, channelId, false, false)
+	voice, err := bot.ChannelVoiceJoin(guildId, channelId, false, true)
 	if err != nil {
 		return err
 	}
