@@ -12,6 +12,7 @@ import (
 
 func worker(bot *discordgo.Session, guildId, channelId string) error {
 	guildName := GetGuildNameById(bot, guildId)
+	defer cleanUpGuildWorker(guildName, guildId)
 	// See https://github.com/Malchemy/DankMemes/blob/master/sound.go#L26
 	voice, err := bot.ChannelVoiceJoin(guildId, channelId, false, true)
 	if err != nil {
@@ -29,14 +30,22 @@ func worker(bot *discordgo.Session, guildId, channelId string) error {
 			break
 		}
 		log.Printf("[%s] There are currently %d medias in the queue", guildName, len(mediaQueues[guildId]))
+		// Wait a bit before playing the next song
+		time.Sleep(500 * time.Millisecond)
 	}
-	time.Sleep(500 * time.Millisecond)
+	return nil
+}
 
-	log.Printf("[%s] Closing channel", guildName)
+func cleanUpGuildWorker(guildName, guildId string) {
+	log.Printf("[%s] Cleaning up before destroying worker", guildName)
+	actionQueuesMutex.Lock()
+	actionQueues[guildId] = nil
+	actionQueuesMutex.Unlock()
+	mediaQueuesMutex.Lock()
 	close(mediaQueues[guildId])
 	mediaQueues[guildId] = nil
-	actionQueues[guildId] = nil
-	return nil
+	mediaQueuesMutex.Unlock()
+	log.Printf("[%s] Cleaned up all channels successfully", guildName)
 }
 
 func play(voice *discordgo.VoiceConnection, media *core.Media, guildName string, actions *core.Actions) {

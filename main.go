@@ -177,7 +177,7 @@ func HandleYoutubeCommand(bot *discordgo.Session, message *discordgo.MessageCrea
 			err = worker(bot, message.GuildID, voiceChannelId)
 			if err != nil {
 				log.Printf("[%s] Failed to start worker: %s", guildName, err.Error())
-				_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Unable to start voice worker: %s", err.Error()))
+				_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("❌ Unable to start voice worker: %s", err.Error()))
 				_ = os.Remove(media.FilePath)
 				return
 			}
