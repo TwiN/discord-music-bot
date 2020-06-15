@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/TwinProduction/discord-music-bot/core"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 	"time"
@@ -13,11 +14,14 @@ import (
 
 type Service struct {
 	maxDurationInSeconds int
+	fileDirectory        string
 }
 
 func NewService(maxDurationInSeconds int) *Service {
+	_ = os.Mkdir("data", os.ModePerm)
 	return &Service{
 		maxDurationInSeconds: maxDurationInSeconds,
+		fileDirectory:        "data",
 	}
 }
 
@@ -58,7 +62,7 @@ func (svc *Service) DoSearchAndDownload(query string) SearchAndDownloadResult {
 			"--no-playlist",
 			"--match-filter", fmt.Sprintf("duration < %d & !is_live", svc.maxDurationInSeconds),
 			"--max-downloads", "1",
-			"--output", fmt.Sprintf("%d-%%(id)s.opus", start.Unix()),
+			"--output", fmt.Sprintf("%s/%d-%%(id)s.opus", svc.fileDirectory, start.Unix()),
 			"--print-json",
 			"--ignore-errors", // Ignores unavailable videos
 		}
@@ -76,7 +80,7 @@ func (svc *Service) DoSearchAndDownload(query string) SearchAndDownloadResult {
 			return SearchAndDownloadResult{
 				Media: core.NewMedia(
 					videoMetadata.Title,
-					fmt.Sprintf("%d-%s.opus", start.Unix(), videoMetadata.ID),
+					videoMetadata.Filename,
 					videoMetadata.Uploader,
 					fmt.Sprintf("https://www.youtube.com/watch?v=%s", videoMetadata.ID),
 					videoMetadata.Thumbnail,
