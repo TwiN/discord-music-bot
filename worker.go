@@ -18,10 +18,15 @@ func worker(bot *discordgo.Session, guildId, channelId string) error {
 	if err != nil {
 		return err
 	}
-	defer voice.Disconnect()
-	voice.Speaking(true)
-	defer voice.Speaking(false)
 	for media := range mediaQueues[guildId] {
+		if !voice.Ready {
+			log.Printf("[%s] VoiceConnection no longer in ready state, reconnecting", guildName)
+			voice, err = bot.ChannelVoiceJoin(guildId, channelId, false, true)
+			if err != nil {
+				return err
+			}
+		}
+		_ = voice.Speaking(true)
 		if !actionQueues[guildId].Stopped {
 			play(voice, media, guildName, actionQueues[guildId])
 		}
@@ -32,7 +37,9 @@ func worker(bot *discordgo.Session, guildId, channelId string) error {
 		log.Printf("[%s] There are currently %d medias in the queue", guildName, len(mediaQueues[guildId]))
 		// Wait a bit before playing the next song
 		time.Sleep(500 * time.Millisecond)
+		_ = voice.Speaking(false)
 	}
+	voice.Disconnect()
 	return nil
 }
 
@@ -80,4 +87,5 @@ func play(voice *discordgo.VoiceConnection, media *core.Media, guildName string,
 		log.Printf("[%s] Stopping", guildName)
 		_ = encodeSession.Stop()
 	}
+	return
 }
