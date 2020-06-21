@@ -1,29 +1,23 @@
 package core
 
 import (
-	"errors"
 	"fmt"
 	"time"
-)
-
-var (
-	ErrAlreadyReadyForStreaming = errors.New("already ready for streaming")
 )
 
 // ActiveGuild is a guild that is currently being streamed to.
 type ActiveGuild struct {
 	Name        string
-	UserActions *UserActions
 	MediaChan   chan *Media
+	UserActions *UserActions
 }
 
 func NewActiveGuild(name string) *ActiveGuild {
-	guild := &ActiveGuild{
+	return &ActiveGuild{
 		Name:        name,
-		UserActions: nil,
 		MediaChan:   nil,
+		UserActions: nil,
 	}
-	return guild
 }
 
 func (g *ActiveGuild) PrepareForStreaming(maxQueueSize int) {
