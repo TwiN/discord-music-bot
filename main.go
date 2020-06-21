@@ -53,7 +53,11 @@ func main() {
 				}
 			}
 		}
-		time.Sleep(1 * time.Second)
+		// There shouldn't be any VC still open, but just in case
+		for _, vc := range bot.VoiceConnections {
+			vc.Disconnect()
+		}
+		time.Sleep(250 * time.Millisecond)
 	}()
 
 	bot.AddHandler(HandleMessage)
