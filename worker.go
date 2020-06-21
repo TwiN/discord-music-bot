@@ -20,6 +20,7 @@ func worker(bot *discordgo.Session, guildId, channelId string) error {
 	}
 	for media := range mediaQueues[guildId] {
 		if !voice.Ready {
+			voice.Disconnect()
 			log.Printf("[%s] VoiceConnection no longer in ready state, reconnecting", guildName)
 			voice, err = bot.ChannelVoiceJoin(guildId, channelId, false, true)
 			if err != nil {
