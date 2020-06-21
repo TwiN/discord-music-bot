@@ -79,11 +79,11 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 		case "youtube", "yt":
 			HandleYoutubeCommand(bot, activeGuild, message, query)
 		case "skip":
-			if activeGuild != nil {
+			if activeGuild != nil && activeGuild.UserActions != nil {
 				activeGuild.UserActions.Skip()
 			}
 		case "stop":
-			if activeGuild != nil {
+			if activeGuild != nil && activeGuild.UserActions != nil {
 				activeGuild.UserActions.Stop()
 			} else {
 				// If queue is nil and the user still wrote !stop, it's possible that there's a VC still active
