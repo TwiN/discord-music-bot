@@ -10,6 +10,7 @@ type Config struct {
 	DiscordToken                  string
 	CommandPrefix                 string
 	MaximumAudioDurationInSeconds int
+	MaximumQueueSize              int
 }
 
 var cfg *Config
@@ -31,6 +32,12 @@ func Load() {
 		cfg.MaximumAudioDurationInSeconds = 480
 	} else {
 		cfg.MaximumAudioDurationInSeconds = maximumAudioDurationInSeconds
+	}
+	maximumQueueSize, err := strconv.Atoi(strings.TrimSpace(os.Getenv("MAXIMUM_QUEUE_SIZE")))
+	if err != nil {
+		cfg.MaximumQueueSize = 10
+	} else {
+		cfg.MaximumQueueSize = maximumQueueSize
 	}
 }
 

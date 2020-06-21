@@ -10,32 +10,30 @@ import (
 	"time"
 )
 
-func worker(bot *discordgo.Session, guildId, channelId string) error {
-	guildName := GetGuildNameById(bot, guildId)
-	defer cleanUpGuildWorker(guildName, guildId)
-	// See https://github.com/Malchemy/DankMemes/blob/master/sound.go#L26
+func worker(bot *discordgo.Session, activeGuild *core.ActiveGuild, guildId, channelId string) error {
+	defer cleanUpGuildWorker(activeGuild)
 	voice, err := bot.ChannelVoiceJoin(guildId, channelId, false, true)
 	if err != nil {
 		return err
 	}
-	for media := range mediaQueues[guildId] {
+	for media := range activeGuild.MediaChan {
 		if !voice.Ready {
 			voice.Disconnect()
-			log.Printf("[%s] VoiceConnection no longer in ready state, reconnecting", guildName)
+			log.Printf("[%s] VoiceConnection no longer in ready state, reconnecting", activeGuild.Name)
 			voice, err = bot.ChannelVoiceJoin(guildId, channelId, false, true)
 			if err != nil {
 				return err
 			}
 		}
 		_ = voice.Speaking(true)
-		if !actionQueues[guildId].Stopped {
-			play(voice, media, guildName, actionQueues[guildId])
+		if !activeGuild.UserActions.Stopped {
+			play(voice, media, activeGuild)
 		}
 		_ = os.Remove(media.FilePath)
-		if len(mediaQueues[guildId]) == 0 {
+		if len(activeGuild.MediaChan) == 0 {
 			break
 		}
-		log.Printf("[%s] There are currently %d medias in the queue", guildName, len(mediaQueues[guildId]))
+		log.Printf("[%s] There are currently %d medias in the queue", activeGuild.Name, activeGuild.MediaQueueSize())
 		// Wait a bit before playing the next song
 		time.Sleep(500 * time.Millisecond)
 		_ = voice.Speaking(false)
@@ -44,19 +42,13 @@ func worker(bot *discordgo.Session, guildId, channelId string) error {
 	return nil
 }
 
-func cleanUpGuildWorker(guildName, guildId string) {
-	log.Printf("[%s] Cleaning up before destroying worker", guildName)
-	actionQueuesMutex.Lock()
-	actionQueues[guildId] = nil
-	actionQueuesMutex.Unlock()
-	mediaQueuesMutex.Lock()
-	close(mediaQueues[guildId])
-	mediaQueues[guildId] = nil
-	mediaQueuesMutex.Unlock()
-	log.Printf("[%s] Cleaned up all channels successfully", guildName)
+func cleanUpGuildWorker(activeGuild *core.ActiveGuild) {
+	log.Printf("[%s] Cleaning up before destroying worker", activeGuild.Name)
+	activeGuild.StopStreaming()
+	log.Printf("[%s] Cleaned up all channels successfully", activeGuild.Name)
 }
 
-func play(voice *discordgo.VoiceConnection, media *core.Media, guildName string, actions *core.Actions) {
+func play(voice *discordgo.VoiceConnection, media *core.Media, activeGuild *core.ActiveGuild) {
 	options := dca.StdEncodeOptions
 	options.BufferedFrames = 100
 	options.FrameDuration = 20
@@ -65,7 +57,7 @@ func play(voice *discordgo.VoiceConnection, media *core.Media, guildName string,
 
 	encodeSession, err := dca.EncodeFile(media.FilePath, options)
 	if err != nil {
-		log.Printf("[%s] Failed to create encoding session for \"%s\": %s", guildName, media.FilePath, err.Error())
+		log.Printf("[%s] Failed to create encoding session for \"%s\": %s", activeGuild.Name, media.FilePath, err.Error())
 		return
 	}
 	defer encodeSession.Cleanup()
@@ -78,14 +70,14 @@ func play(voice *discordgo.VoiceConnection, media *core.Media, guildName string,
 	select {
 	case err := <-done:
 		if err != nil && err != io.EOF {
-			log.Printf("[%s] Error occurred during stream for \"%s\": %s", guildName, media.FilePath, err.Error())
+			log.Printf("[%s] Error occurred during stream for \"%s\": %s", activeGuild.Name, media.FilePath, err.Error())
 			return
 		}
-	case <-actions.SkipChan:
-		log.Printf("[%s] Skipping \"%s\"", guildName, media.FilePath)
+	case <-activeGuild.UserActions.SkipChan:
+		log.Printf("[%s] Skipping \"%s\"", activeGuild.Name, media.FilePath)
 		_ = encodeSession.Stop()
-	case <-actions.StopChan:
-		log.Printf("[%s] Stopping", guildName)
+	case <-activeGuild.UserActions.StopChan:
+		log.Printf("[%s] Stopping", activeGuild.Name)
 		_ = encodeSession.Stop()
 	}
 	return
