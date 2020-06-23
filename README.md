@@ -14,6 +14,7 @@ It uses `youtube-dl` to search and download the video as well as `ffmpeg` to con
 | DISCORD_BOT_TOKEN | Discord bot token | yes | `""` |
 | COMMAND_PREFIX | Character prepending all bot commands. Must be exactly 1 character, or it will default to `!` | no | `!` |
 | MAXIMUM_AUDIO_DURATION_IN_SECONDS | Maximum duration of audio clips in second | no | `480` |
+| MAXIMUM_QUEUE_SIZE | Maximum number of medias that can be queued up per server/guild | no | `10` |
 
 
 ## Getting started
