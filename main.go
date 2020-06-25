@@ -150,7 +150,7 @@ func HandleYoutubeCommand(bot *discordgo.Session, activeGuild *core.ActiveGuild,
 	log.Printf("[%s] Successfully searched for and extracted audio from video with title \"%s\" to \"%s\"", activeGuild.Name, media.Title, media.FilePath)
 	botMessage, _ = bot.ChannelMessageEdit(botMessage.ChannelID, botMessage.ID, fmt.Sprintf(":white_check_mark: Found matching video titled `%s`!", media.Title))
 	go func(bot *discordgo.Session, message *discordgo.Message) {
-		time.Sleep(3 * time.Second)
+		time.Sleep(5 * time.Second)
 		_ = bot.ChannelMessageDelete(botMessage.ChannelID, botMessage.ID)
 	}(bot, botMessage)
 
