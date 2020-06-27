@@ -38,8 +38,8 @@ func main() {
 	defer bot.Close()
 	_ = bot.UpdateListeningStatus(fmt.Sprintf("%shelp", config.Get().CommandPrefix))
 	defer func() {
-		for guildId, guild := range guilds {
-			log.Printf("Shutting down, stopping queues for guild %s", guildNames[guildId])
+		for _, guild := range guilds {
+			log.Printf("[%s] Shutting down: Closing queue", guild.Name)
 			if guild.UserActions != nil {
 				guild.UserActions.Stop()
 			}
