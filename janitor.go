@@ -9,7 +9,7 @@ import (
 func StartJanitor(bot *discordgo.Session) {
 	for {
 		CleanUpVoiceConnections(bot)
-		time.Sleep(10 * time.Second)
+		time.Sleep(30 * time.Second)
 	}
 }
 
