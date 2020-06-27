@@ -53,7 +53,7 @@ func main() {
 
 	bot.AddHandler(HandleMessage)
 	log.Println("Connected successfully")
-	//go StartJanitor(bot)
+	go StartJanitor(bot)
 
 	// Wait for the bot to be killed
 	channel := make(chan os.Signal, 1)
