@@ -69,7 +69,6 @@ If you want to run it locally, you'll need the following applications:
 - ffmpeg
 
 
-
 ## Docker
 
 ### Pulling from Docker Hub
