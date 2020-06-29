@@ -25,20 +25,15 @@ func NewService(maxDurationInSeconds int) *Service {
 	}
 }
 
-type SearchAndDownloadResult struct {
-	Media *core.Media
-	Error error
-}
-
 func (svc *Service) SearchAndDownload(query string) (*core.Media, error) {
 	timeout := make(chan bool, 1)
-	result := make(chan SearchAndDownloadResult, 1)
+	result := make(chan searchAndDownloadResult, 1)
 	go func() {
 		time.Sleep(30 * time.Second)
 		timeout <- true
 	}()
 	go func() {
-		result <- svc.DoSearchAndDownload(query)
+		result <- svc.doSearchAndDownload(query)
 	}()
 	select {
 	case <-timeout:
@@ -48,14 +43,13 @@ func (svc *Service) SearchAndDownload(query string) (*core.Media, error) {
 	}
 }
 
-func (svc *Service) DoSearchAndDownload(query string) SearchAndDownloadResult {
+func (svc *Service) doSearchAndDownload(query string) searchAndDownloadResult {
 	start := time.Now()
 	youtubeDownloader, err := exec.LookPath("youtube-dl")
 	if err != nil {
-		return SearchAndDownloadResult{Error: errors.New("youtube-dl not found in path")}
+		return searchAndDownloadResult{Error: errors.New("youtube-dl not found in path")}
 	} else {
 		args := []string{
-			// TODO: sanitize input... lol
 			fmt.Sprintf("ytsearch10:%s", strings.ReplaceAll(query, "\"", "")),
 			"--extract-audio",
 			"--audio-format", "opus",
@@ -69,15 +63,15 @@ func (svc *Service) DoSearchAndDownload(query string) SearchAndDownloadResult {
 		log.Printf("youtube-dl %s", strings.Join(args, " "))
 		cmd := exec.Command(youtubeDownloader, args...)
 		if data, err := cmd.Output(); err != nil && err.Error() != "exit status 101" {
-			return SearchAndDownloadResult{Error: fmt.Errorf("failed to search and download audio: %s\n%s", err.Error(), string(data))}
+			return searchAndDownloadResult{Error: fmt.Errorf("failed to search and download audio: %s\n%s", err.Error(), string(data))}
 		} else {
-			videoMetadata := VideoMetadata{}
+			videoMetadata := videoMetadata{}
 			err = json.Unmarshal(data, &videoMetadata)
 			if err != nil {
 				fmt.Println(string(data))
-				return SearchAndDownloadResult{Error: fmt.Errorf("failed to unmarshal video metadata: %s", err.Error())}
+				return searchAndDownloadResult{Error: fmt.Errorf("failed to unmarshal video metadata: %s", err.Error())}
 			}
-			return SearchAndDownloadResult{
+			return searchAndDownloadResult{
 				Media: core.NewMedia(
 					videoMetadata.Title,
 					videoMetadata.Filename,
@@ -91,7 +85,12 @@ func (svc *Service) DoSearchAndDownload(query string) SearchAndDownloadResult {
 	}
 }
 
-type VideoMetadata struct {
+type searchAndDownloadResult struct {
+	Media *core.Media
+	Error error
+}
+
+type videoMetadata struct {
 	ChannelID     string      `json:"channel_id"`
 	ExtractorKey  string      `json:"extractor_key"`
 	NEntries      int         `json:"n_entries"`
