@@ -56,7 +56,7 @@ func (svc *Service) DoSearchAndDownload(query string) SearchAndDownloadResult {
 	} else {
 		args := []string{
 			// TODO: sanitize input... lol
-			fmt.Sprintf("ytsearch10:%s", strings.ReplaceAll(strings.ReplaceAll(query, "\"", ""), "\\", "")),
+			fmt.Sprintf("ytsearch10:%s", strings.ReplaceAll(query, "\"", "")),
 			"--extract-audio",
 			"--audio-format", "opus",
 			"--no-playlist",
