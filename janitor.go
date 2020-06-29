@@ -24,5 +24,3 @@ func CleanUpVoiceConnections(bot *discordgo.Session) {
 		}
 	}
 }
-
-// TODO: clean up inactive "activeGuilds" every now and then
