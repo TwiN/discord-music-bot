@@ -48,7 +48,7 @@ func main() {
 		for _, vc := range bot.VoiceConnections {
 			vc.Disconnect()
 		}
-		time.Sleep(250 * time.Millisecond)
+		time.Sleep(300 * time.Millisecond)
 	}()
 
 	bot.AddHandler(HandleMessage)
