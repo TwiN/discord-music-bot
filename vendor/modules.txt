@@ -1,4 +1,4 @@
-# github.com/bwmarrin/discordgo v0.21.1
+# github.com/bwmarrin/discordgo v0.22.0
 ## explicit
 github.com/bwmarrin/discordgo
 # github.com/gorilla/websocket v1.4.0

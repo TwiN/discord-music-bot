@@ -6,9 +6,9 @@ import (
 )
 
 func GetVoiceChannelWhereMessageAuthorIs(bot *discordgo.Session, message *discordgo.MessageCreate) (string, error) {
-	guild, err := bot.Guild(message.GuildID)
+	guild, err := bot.State.Guild(message.GuildID)
 	if err != nil {
-		return "", fmt.Errorf("unable to find voice channel user is in: %s", err.Error())
+		return "", err
 	}
 	for _, voiceState := range guild.VoiceStates {
 		if voiceState.UserID == message.Author.ID {
@@ -19,6 +19,7 @@ func GetVoiceChannelWhereMessageAuthorIs(bot *discordgo.Session, message *discor
 }
 
 func Connect(discordToken string) (*discordgo.Session, error) {
+	discordgo.MakeIntent(discordgo.IntentsGuildVoiceStates)
 	discord, err := discordgo.New(fmt.Sprintf("Bot %s", discordToken))
 	if err != nil {
 		return nil, err

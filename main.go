@@ -48,7 +48,7 @@ func main() {
 		for _, vc := range bot.VoiceConnections {
 			vc.Disconnect()
 		}
-		time.Sleep(300 * time.Millisecond)
+		time.Sleep(250 * time.Millisecond)
 	}()
 
 	bot.AddHandler(HandleMessage)
@@ -76,7 +76,7 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 		activeGuild := guilds[message.GuildID]
 		guildsMutex.Unlock()
 		switch command {
-		case "youtube", "yt":
+		case "youtube", "yt", "play":
 			HandleYoutubeCommand(bot, activeGuild, message, query)
 		case "skip":
 			if activeGuild != nil && activeGuild.UserActions != nil {
