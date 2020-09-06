@@ -26,6 +26,8 @@ var (
 	guildNames = make(map[string]string)
 
 	youtubeService *youtube.Service
+
+	killChannel chan os.Signal
 )
 
 func main() {
@@ -38,7 +40,7 @@ func main() {
 	defer bot.Close()
 	_ = bot.UpdateListeningStatus(fmt.Sprintf("%shelp", config.Get().CommandPrefix))
 	defer func() {
-		closeAllQueuesAndDisconnectVoiceConnections(bot)
+		closeAllQueuesAndDisconnectFromVoice(bot)
 		time.Sleep(250 * time.Millisecond)
 	}()
 
@@ -47,14 +49,14 @@ func main() {
 	go StartJanitor(bot)
 
 	// Wait for the bot to be killed
-	channel := make(chan os.Signal, 1)
-	signal.Notify(channel, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
-	<-channel
+	killChannel = make(chan os.Signal, 1)
+	signal.Notify(killChannel, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
+	<-killChannel
 
 	log.Println("Terminating bot")
 }
 
-func closeAllQueuesAndDisconnectVoiceConnections(bot *discordgo.Session) {
+func closeAllQueuesAndDisconnectFromVoice(bot *discordgo.Session) {
 	for _, guild := range guilds {
 		log.Printf("[%s] Shutting down: Closing queue", guild.Name)
 		if guild.UserActions != nil {
@@ -105,10 +107,10 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 			_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Heartbeat latency: %s", latency))
 		case "restart":
 			if config.Get().IsUserBotAdmin(message.Author.ID) {
-				_, _ = bot.ChannelMessageSend(message.ChannelID, "Restarting...")
+				_, _ = bot.ChannelMessageSend(message.ChannelID, "Restarting.")
 				_ = bot.MessageReactionAdd(message.ChannelID, message.ID, "✅")
-				closeAllQueuesAndDisconnectVoiceConnections(bot)
-				os.Exit(0)
+				log.Printf("[%s] Restart initiated by %s", GetGuildNameById(bot, message.GuildID), message.Author.Username)
+				killChannel <- syscall.SIGTERM
 			} else {
 				_ = bot.MessageReactionAdd(message.ChannelID, message.ID, "❌")
 				botMessage, _ := bot.ChannelMessageSend(message.ChannelID, "You must be an admin to execute this command.")
