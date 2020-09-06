@@ -38,16 +38,7 @@ func main() {
 	defer bot.Close()
 	_ = bot.UpdateListeningStatus(fmt.Sprintf("%shelp", config.Get().CommandPrefix))
 	defer func() {
-		for _, guild := range guilds {
-			log.Printf("[%s] Shutting down: Closing queue", guild.Name)
-			if guild.UserActions != nil {
-				guild.UserActions.Stop()
-			}
-		}
-		// There shouldn't be any VC still open, but just in case
-		for _, vc := range bot.VoiceConnections {
-			vc.Disconnect()
-		}
+		closeAllQueuesAndDisconnectVoiceConnections(bot)
 		time.Sleep(250 * time.Millisecond)
 	}()
 
@@ -61,6 +52,19 @@ func main() {
 	<-channel
 
 	log.Println("Terminating bot")
+}
+
+func closeAllQueuesAndDisconnectVoiceConnections(bot *discordgo.Session) {
+	for _, guild := range guilds {
+		log.Printf("[%s] Shutting down: Closing queue", guild.Name)
+		if guild.UserActions != nil {
+			guild.UserActions.Stop()
+		}
+	}
+	// There shouldn't be any VC still open, but just in case
+	for _, vc := range bot.VoiceConnections {
+		vc.Disconnect()
+	}
 }
 
 func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
@@ -103,6 +107,7 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 			if config.Get().IsUserBotAdmin(message.Author.ID) {
 				_, _ = bot.ChannelMessageSend(message.ChannelID, "Restarting...")
 				_ = bot.MessageReactionAdd(message.ChannelID, message.ID, "✅")
+				closeAllQueuesAndDisconnectVoiceConnections(bot)
 				os.Exit(0)
 			} else {
 				_ = bot.MessageReactionAdd(message.ChannelID, message.ID, "❌")
