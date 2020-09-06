@@ -11,6 +11,16 @@ type Config struct {
 	CommandPrefix                 string
 	MaximumAudioDurationInSeconds int
 	MaximumQueueSize              int
+	BotAdmins                     []string
+}
+
+func (config *Config) IsUserBotAdmin(userId string) bool {
+	for _, adminId := range config.BotAdmins {
+		if adminId == userId {
+			return true
+		}
+	}
+	return false
 }
 
 var cfg *Config
@@ -38,6 +48,10 @@ func Load() {
 		cfg.MaximumQueueSize = 10
 	} else {
 		cfg.MaximumQueueSize = maximumQueueSize
+	}
+	botAdmins := strings.TrimSpace(os.Getenv("BOT_ADMINS"))
+	if len(botAdmins) > 0 {
+		cfg.BotAdmins = strings.Split(botAdmins, ",")
 	}
 }
 

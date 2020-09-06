@@ -99,17 +99,31 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 		case "health":
 			latency := bot.HeartbeatLatency()
 			_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Heartbeat latency: %s", latency))
+		case "restart":
+			if config.Get().IsUserBotAdmin(message.Author.ID) {
+				_, _ = bot.ChannelMessageSend(message.ChannelID, "Restarting...")
+				_ = bot.MessageReactionAdd(message.ChannelID, message.ID, "✅")
+				os.Exit(0)
+			} else {
+				_ = bot.MessageReactionAdd(message.ChannelID, message.ID, "❌")
+				botMessage, _ := bot.ChannelMessageSend(message.ChannelID, "You must be an admin to execute this command.")
+				go func(bot *discordgo.Session, message *discordgo.Message) {
+					time.Sleep(5 * time.Second)
+					_ = bot.ChannelMessageDelete(message.ChannelID, message.ID)
+				}(bot, botMessage)
+			}
 		case "help":
 			_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf(`
 __**Commands**__
-**%syoutube or %syt**: Searches for a song on youtube and adds it to the playlist
-**%sskip**: Skip the current audio clip
-**%sstop**: Flush the bot's playlist and disconnect it from the voice channel'
-**%sinfo**: Provides general information about the bot
-**%shealth**: Provides information about the health of the bot
+**%syoutube or %syt**: Searches for a song on youtube and adds it to the playlist.
+**%sskip**: Skip the current audio clip.
+**%sstop**: Flush the bot's playlist and disconnect it from the voice channel.
+**%sinfo**: Provides general information about the bot.
+**%shealth**: Provides information about the health of the bot.
+**%srestart**: Restarts the bot. Must be admin to use this command.
 
 Bugs to report? Create an issue at https://github.com/TwinProduction/discord-music-bot
-`, commandPrefix, commandPrefix, commandPrefix, commandPrefix, commandPrefix, commandPrefix))
+`, commandPrefix, commandPrefix, commandPrefix, commandPrefix, commandPrefix, commandPrefix, commandPrefix))
 		}
 	}
 }
