@@ -5,7 +5,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/jonas747/ogg"
 	"io"
 	"log"
 	"os"
@@ -13,6 +12,8 @@ import (
 	"strconv"
 	"sync"
 	"time"
+
+	"github.com/jonas747/ogg"
 )
 
 var (

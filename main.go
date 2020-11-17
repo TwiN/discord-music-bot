@@ -3,10 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"github.com/TwinProduction/discord-music-bot/config"
-	"github.com/TwinProduction/discord-music-bot/core"
-	"github.com/TwinProduction/discord-music-bot/youtube"
-	"github.com/bwmarrin/discordgo"
 	"log"
 	"os"
 	"os/signal"
@@ -14,6 +10,11 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/TwinProduction/discord-music-bot/config"
+	"github.com/TwinProduction/discord-music-bot/core"
+	"github.com/TwinProduction/discord-music-bot/youtube"
+	"github.com/bwmarrin/discordgo"
 )
 
 var (

@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/bwmarrin/discordgo"
 	"log"
 	"time"
+
+	"github.com/bwmarrin/discordgo"
 )
 
 func StartJanitor(bot *discordgo.Session) {

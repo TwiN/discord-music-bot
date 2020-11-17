@@ -1,13 +1,14 @@
 package main
 
 import (
-	"github.com/TwinProduction/discord-music-bot/core"
-	"github.com/TwinProduction/discord-music-bot/dca"
-	"github.com/bwmarrin/discordgo"
 	"io"
 	"log"
 	"os"
 	"time"
+
+	"github.com/TwinProduction/discord-music-bot/core"
+	"github.com/TwinProduction/discord-music-bot/dca"
+	"github.com/bwmarrin/discordgo"
 )
 
 func worker(bot *discordgo.Session, activeGuild *core.ActiveGuild, guildId, channelId string) error {
