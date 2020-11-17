@@ -78,7 +78,7 @@ func (svc *Service) doSearchAndDownload(query string) searchAndDownloadResult {
 					videoMetadata.Uploader,
 					fmt.Sprintf("https://www.youtube.com/watch?v=%s", videoMetadata.ID),
 					videoMetadata.Thumbnail,
-					videoMetadata.Duration,
+					int(videoMetadata.Duration),
 				),
 			}
 		}
@@ -143,7 +143,7 @@ type videoMetadata struct {
 	AltTitle          interface{} `json:"alt_title"`
 	StartTime         interface{} `json:"start_time"`
 	PlaylistTitle     interface{} `json:"playlist_title"`
-	Duration          int         `json:"duration"`
+	Duration          float64     `json:"duration"`
 	Abr               int         `json:"abr"`
 	ChannelURL        string      `json:"channel_url"`
 	AgeLimit          int         `json:"age_limit"`
