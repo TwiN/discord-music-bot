@@ -144,7 +144,6 @@ type videoMetadata struct {
 	StartTime         interface{} `json:"start_time"`
 	PlaylistTitle     interface{} `json:"playlist_title"`
 	Duration          float64     `json:"duration"`
-	Abr               int         `json:"abr"`
 	ChannelURL        string      `json:"channel_url"`
 	AgeLimit          int         `json:"age_limit"`
 	DownloaderOptions struct {
