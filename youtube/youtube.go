@@ -117,7 +117,6 @@ type videoMetadata struct {
 			AcceptLanguage string `json:"Accept-Language"`
 		} `json:"http_headers"`
 		FormatNote        string  `json:"format_note"`
-		Abr               int     `json:"abr,omitempty"`
 		Vcodec            string  `json:"vcodec"`
 		Tbr               float64 `json:"tbr"`
 		URL               string  `json:"url"`
