@@ -10,7 +10,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/TwinProduction/discord-music-bot/core"
+	"github.com/TwiN/discord-music-bot/core"
 )
 
 type Service struct {

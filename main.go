@@ -11,9 +11,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/TwinProduction/discord-music-bot/config"
-	"github.com/TwinProduction/discord-music-bot/core"
-	"github.com/TwinProduction/discord-music-bot/youtube"
+	"github.com/TwiN/discord-music-bot/config"
+	"github.com/TwiN/discord-music-bot/core"
+	"github.com/TwiN/discord-music-bot/youtube"
 	"github.com/bwmarrin/discordgo"
 )
 
@@ -102,7 +102,7 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 				bot.Unlock()
 			}
 		case "info":
-			_, _ = bot.ChannelMessageSend(message.ChannelID, "See https://github.com/TwinProduction/discord-music-bot")
+			_, _ = bot.ChannelMessageSend(message.ChannelID, "See https://github.com/TwiN/discord-music-bot")
 		case "health":
 			latency := bot.HeartbeatLatency()
 			_, _ = bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf("Heartbeat latency: %s", latency))
@@ -130,7 +130,7 @@ __**Commands**__
 **%shealth**: Provides information about the health of the bot.
 **%srestart**: Restarts the bot. Must be admin to use this command.
 
-Bugs to report? Create an issue at https://github.com/TwinProduction/discord-music-bot
+Bugs to report? Create an issue at https://github.com/TwiN/discord-music-bot
 `, commandPrefix, commandPrefix, commandPrefix, commandPrefix, commandPrefix, commandPrefix, commandPrefix))
 		}
 	}

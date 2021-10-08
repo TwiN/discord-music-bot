@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/TwinProduction/discord-music-bot/core"
-	"github.com/TwinProduction/discord-music-bot/dca"
+	"github.com/TwiN/discord-music-bot/core"
+	"github.com/TwiN/discord-music-bot/dca"
 	"github.com/bwmarrin/discordgo"
 )
 

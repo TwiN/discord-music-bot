@@ -1,4 +1,4 @@
-module github.com/TwinProduction/discord-music-bot
+module github.com/TwiN/discord-music-bot
 
 go 1.16
 
