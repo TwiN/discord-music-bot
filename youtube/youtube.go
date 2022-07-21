@@ -30,7 +30,7 @@ func (svc *Service) SearchAndDownload(query string) (*core.Media, error) {
 	timeout := make(chan bool, 1)
 	result := make(chan searchAndDownloadResult, 1)
 	go func() {
-		time.Sleep(30 * time.Second)
+		time.Sleep(60 * time.Second)
 		timeout <- true
 	}()
 	go func() {
