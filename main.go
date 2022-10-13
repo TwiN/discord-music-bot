@@ -96,7 +96,7 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 				// If queue is nil and the user still wrote !stop, it's possible that there's a VC still active
 				bot.Lock()
 				if bot.VoiceConnections[message.GuildID] != nil {
-					log.Printf("[%s] Force disconnecting VC (!stop was called and queue was already nil)", GetGuildNameById(bot, message.GuildID))
+					log.Printf("[%s] Force disconnecting VC (!stop was called and queue was already nil)", GetGuildNameByID(bot, message.GuildID))
 					bot.VoiceConnections[message.GuildID].Disconnect()
 				}
 				bot.Unlock()
@@ -110,7 +110,7 @@ func HandleMessage(bot *discordgo.Session, message *discordgo.MessageCreate) {
 			if config.Get().IsUserBotAdmin(message.Author.ID) {
 				_, _ = bot.ChannelMessageSend(message.ChannelID, "Restarting.")
 				_ = bot.MessageReactionAdd(message.ChannelID, message.ID, "✅")
-				log.Printf("[%s] Restart initiated by %s", GetGuildNameById(bot, message.GuildID), message.Author.Username)
+				log.Printf("[%s] Restart initiated by %s", GetGuildNameByID(bot, message.GuildID), message.Author.Username)
 				killChannel <- syscall.SIGTERM
 			} else {
 				_ = bot.MessageReactionAdd(message.ChannelID, message.ID, "❌")
@@ -143,12 +143,11 @@ func HandleYoutubeCommand(bot *discordgo.Session, activeGuild *core.ActiveGuild,
 			return
 		}
 	} else {
-		activeGuild = core.NewActiveGuild(GetGuildNameById(bot, message.GuildID))
+		activeGuild = core.NewActiveGuild(GetGuildNameByID(bot, message.GuildID))
 		guildsMutex.Lock()
 		guilds[message.GuildID] = activeGuild
 		guildsMutex.Unlock()
 	}
-
 	// Find the voice channel the user is in
 	voiceChannelId, err := GetVoiceChannelWhereMessageAuthorIs(bot, message)
 	if err != nil {
@@ -160,7 +159,6 @@ func HandleYoutubeCommand(bot *discordgo.Session, activeGuild *core.ActiveGuild,
 		log.Printf("[%s] Found user %s in voice channel %s", activeGuild.Name, message.Author.Username, voiceChannelId)
 		_ = bot.MessageReactionAdd(message.ChannelID, message.ID, "✅")
 	}
-
 	log.Printf("[%s] Searching for \"%s\"", activeGuild.Name, query)
 	botMessage, _ := bot.ChannelMessageSend(message.ChannelID, fmt.Sprintf(":mag: Searching for `%s`...", query))
 	media, err := youtubeService.SearchAndDownload(query)
@@ -175,7 +173,6 @@ func HandleYoutubeCommand(bot *discordgo.Session, activeGuild *core.ActiveGuild,
 		time.Sleep(5 * time.Second)
 		_ = bot.ChannelMessageDelete(botMessage.ChannelID, botMessage.ID)
 	}(bot, botMessage)
-
 	// Add song to guild queue
 	createNewWorker := false
 	if !activeGuild.IsStreaming() {
@@ -185,7 +182,6 @@ func HandleYoutubeCommand(bot *discordgo.Session, activeGuild *core.ActiveGuild,
 		createNewWorker = true
 	}
 	activeGuild.EnqueueMedia(media)
-
 	log.Printf("[%s] Added media with title \"%s\" to queue at position %d", activeGuild.Name, media.Title, activeGuild.MediaQueueSize())
 	_, _ = bot.ChannelMessageSendEmbed(message.ChannelID, &discordgo.MessageEmbed{
 		URL:         media.URL,
@@ -195,7 +191,6 @@ func HandleYoutubeCommand(bot *discordgo.Session, activeGuild *core.ActiveGuild,
 			URL: media.Thumbnail,
 		},
 	})
-
 	if createNewWorker {
 		log.Printf("[%s] Starting worker", activeGuild.Name)
 		go func() {
