@@ -36,19 +36,13 @@ type Event struct {
 
 // A Ready stores all data for the websocket READY event.
 type Ready struct {
-	Version         int          `json:"v"`
-	SessionID       string       `json:"session_id"`
-	User            *User        `json:"user"`
-	ReadState       []*ReadState `json:"read_state"`
-	PrivateChannels []*Channel   `json:"private_channels"`
-	Guilds          []*Guild     `json:"guilds"`
+	Version         int        `json:"v"`
+	SessionID       string     `json:"session_id"`
+	User            *User      `json:"user"`
+	Guilds          []*Guild   `json:"guilds"`
+	PrivateChannels []*Channel `json:"private_channels"`
 
-	// Undocumented fields
-	Settings          *Settings            `json:"user_settings"`
-	UserGuildSettings []*UserGuildSettings `json:"user_guild_settings"`
-	Relationships     []*Relationship      `json:"relationships"`
-	Presences         []*Presence          `json:"presences"`
-	Notes             map[string]string    `json:"notes"`
+	// TODO: Application and Shard
 }
 
 // ChannelCreate is the data for a ChannelCreate event.
@@ -73,6 +67,53 @@ type ChannelPinsUpdate struct {
 	GuildID          string `json:"guild_id,omitempty"`
 }
 
+// ThreadCreate is the data for a ThreadCreate event.
+type ThreadCreate struct {
+	*Channel
+	NewlyCreated bool `json:"newly_created"`
+}
+
+// ThreadUpdate is the data for a ThreadUpdate event.
+type ThreadUpdate struct {
+	*Channel
+	BeforeUpdate *Channel `json:"-"`
+}
+
+// ThreadDelete is the data for a ThreadDelete event.
+type ThreadDelete struct {
+	*Channel
+}
+
+// ThreadListSync is the data for a ThreadListSync event.
+type ThreadListSync struct {
+	// The id of the guild
+	GuildID string `json:"guild_id"`
+	// The parent channel ids whose threads are being synced.
+	// If omitted, then threads were synced for the entire guild.
+	// This array may contain channel_ids that have no active threads as well, so you know to clear that data.
+	ChannelIDs []string `json:"channel_ids"`
+	// All active threads in the given channels that the current user can access
+	Threads []*Channel `json:"threads"`
+	// All thread member objects from the synced threads for the current user,
+	// indicating which threads the current user has been added to
+	Members []*ThreadMember `json:"members"`
+}
+
+// ThreadMemberUpdate is the data for a ThreadMemberUpdate event.
+type ThreadMemberUpdate struct {
+	*ThreadMember
+	GuildID string `json:"guild_id"`
+}
+
+// ThreadMembersUpdate is the data for a ThreadMembersUpdate event.
+type ThreadMembersUpdate struct {
+	ID             string              `json:"id"`
+	GuildID        string              `json:"guild_id"`
+	MemberCount    int                 `json:"member_count"`
+	AddedMembers   []AddedThreadMember `json:"added_members"`
+	RemovedMembers []string            `json:"removed_member_ids"`
+}
+
 // GuildCreate is the data for a GuildCreate event.
 type GuildCreate struct {
 	*Guild
@@ -86,6 +127,7 @@ type GuildUpdate struct {
 // GuildDelete is the data for a GuildDelete event.
 type GuildDelete struct {
 	*Guild
+	BeforeDelete *Guild `json:"-"`
 }
 
 // GuildBanAdd is the data for a GuildBanAdd event.
@@ -143,7 +185,9 @@ type GuildMembersChunk struct {
 	Members    []*Member   `json:"members"`
 	ChunkIndex int         `json:"chunk_index"`
 	ChunkCount int         `json:"chunk_count"`
+	NotFound   []string    `json:"not_found,omitempty"`
 	Presences  []*Presence `json:"presences,omitempty"`
+	Nonce      string      `json:"nonce,omitempty"`
 }
 
 // GuildIntegrationsUpdate is the data for a GuildIntegrationsUpdate event.
@@ -151,15 +195,58 @@ type GuildIntegrationsUpdate struct {
 	GuildID string `json:"guild_id"`
 }
 
-// MessageAck is the data for a MessageAck event.
-type MessageAck struct {
-	MessageID string `json:"message_id"`
-	ChannelID string `json:"channel_id"`
+// StageInstanceEventCreate is the data for a StageInstanceEventCreate event.
+type StageInstanceEventCreate struct {
+	*StageInstance
+}
+
+// StageInstanceEventUpdate is the data for a StageInstanceEventUpdate event.
+type StageInstanceEventUpdate struct {
+	*StageInstance
+}
+
+// StageInstanceEventDelete is the data for a StageInstanceEventDelete event.
+type StageInstanceEventDelete struct {
+	*StageInstance
+}
+
+// GuildScheduledEventCreate is the data for a GuildScheduledEventCreate event.
+type GuildScheduledEventCreate struct {
+	*GuildScheduledEvent
+}
+
+// GuildScheduledEventUpdate is the data for a GuildScheduledEventUpdate event.
+type GuildScheduledEventUpdate struct {
+	*GuildScheduledEvent
+}
+
+// GuildScheduledEventDelete is the data for a GuildScheduledEventDelete event.
+type GuildScheduledEventDelete struct {
+	*GuildScheduledEvent
+}
+
+// GuildScheduledEventUserAdd is the data for a GuildScheduledEventUserAdd event.
+type GuildScheduledEventUserAdd struct {
+	GuildScheduledEventID string `json:"guild_scheduled_event_id"`
+	UserID                string `json:"user_id"`
+	GuildID               string `json:"guild_id"`
+}
+
+// GuildScheduledEventUserRemove is the data for a GuildScheduledEventUserRemove event.
+type GuildScheduledEventUserRemove struct {
+	GuildScheduledEventID string `json:"guild_scheduled_event_id"`
+	UserID                string `json:"user_id"`
+	GuildID               string `json:"guild_id"`
 }
 
 // MessageCreate is the data for a MessageCreate event.
 type MessageCreate struct {
 	*Message
+}
+
+// UnmarshalJSON is a helper function to unmarshal MessageCreate object.
+func (m *MessageCreate) UnmarshalJSON(b []byte) error {
+	return json.Unmarshal(b, &m.Message)
 }
 
 // MessageUpdate is the data for a MessageUpdate event.
@@ -169,15 +256,26 @@ type MessageUpdate struct {
 	BeforeUpdate *Message `json:"-"`
 }
 
+// UnmarshalJSON is a helper function to unmarshal MessageUpdate object.
+func (m *MessageUpdate) UnmarshalJSON(b []byte) error {
+	return json.Unmarshal(b, &m.Message)
+}
+
 // MessageDelete is the data for a MessageDelete event.
 type MessageDelete struct {
 	*Message
 	BeforeDelete *Message `json:"-"`
 }
 
+// UnmarshalJSON is a helper function to unmarshal MessageDelete object.
+func (m *MessageDelete) UnmarshalJSON(b []byte) error {
+	return json.Unmarshal(b, &m.Message)
+}
+
 // MessageReactionAdd is the data for a MessageReactionAdd event.
 type MessageReactionAdd struct {
 	*MessageReaction
+	Member *Member `json:"member,omitempty"`
 }
 
 // MessageReactionRemove is the data for a MessageReactionRemove event.
@@ -196,23 +294,12 @@ type PresencesReplace []*Presence
 // PresenceUpdate is the data for a PresenceUpdate event.
 type PresenceUpdate struct {
 	Presence
-	GuildID string   `json:"guild_id"`
-	Roles   []string `json:"roles"`
+	GuildID string `json:"guild_id"`
 }
 
 // Resumed is the data for a Resumed event.
 type Resumed struct {
 	Trace []string `json:"_trace"`
-}
-
-// RelationshipAdd is the data for a RelationshipAdd event.
-type RelationshipAdd struct {
-	*Relationship
-}
-
-// RelationshipRemove is the data for a RelationshipRemove event.
-type RelationshipRemove struct {
-	*Relationship
 }
 
 // TypingStart is the data for a TypingStart event.
@@ -228,20 +315,6 @@ type UserUpdate struct {
 	*User
 }
 
-// UserSettingsUpdate is the data for a UserSettingsUpdate event.
-type UserSettingsUpdate map[string]interface{}
-
-// UserGuildSettingsUpdate is the data for a UserGuildSettingsUpdate event.
-type UserGuildSettingsUpdate struct {
-	*UserGuildSettings
-}
-
-// UserNoteUpdate is the data for a UserNoteUpdate event.
-type UserNoteUpdate struct {
-	ID   string `json:"id"`
-	Note string `json:"note"`
-}
-
 // VoiceServerUpdate is the data for a VoiceServerUpdate event.
 type VoiceServerUpdate struct {
 	Token    string `json:"token"`
@@ -252,6 +325,8 @@ type VoiceServerUpdate struct {
 // VoiceStateUpdate is the data for a VoiceStateUpdate event.
 type VoiceStateUpdate struct {
 	*VoiceState
+	// BeforeUpdate will be nil if the VoiceState was not previously cached in the state cache.
+	BeforeUpdate *VoiceState `json:"-"`
 }
 
 // MessageDeleteBulk is the data for a MessageDeleteBulk event
@@ -265,4 +340,63 @@ type MessageDeleteBulk struct {
 type WebhooksUpdate struct {
 	GuildID   string `json:"guild_id"`
 	ChannelID string `json:"channel_id"`
+}
+
+// InteractionCreate is the data for a InteractionCreate event
+type InteractionCreate struct {
+	*Interaction
+}
+
+// UnmarshalJSON is a helper function to unmarshal Interaction object.
+func (i *InteractionCreate) UnmarshalJSON(b []byte) error {
+	return json.Unmarshal(b, &i.Interaction)
+}
+
+// InviteCreate is the data for a InviteCreate event
+type InviteCreate struct {
+	*Invite
+	ChannelID string `json:"channel_id"`
+	GuildID   string `json:"guild_id"`
+}
+
+// InviteDelete is the data for a InviteDelete event
+type InviteDelete struct {
+	ChannelID string `json:"channel_id"`
+	GuildID   string `json:"guild_id"`
+	Code      string `json:"code"`
+}
+
+// ApplicationCommandPermissionsUpdate is the data for an ApplicationCommandPermissionsUpdate event
+type ApplicationCommandPermissionsUpdate struct {
+	*GuildApplicationCommandPermissions
+}
+
+// AutoModerationRuleCreate is the data for an AutoModerationRuleCreate event.
+type AutoModerationRuleCreate struct {
+	*AutoModerationRule
+}
+
+// AutoModerationRuleUpdate is the data for an AutoModerationRuleUpdate event.
+type AutoModerationRuleUpdate struct {
+	*AutoModerationRule
+}
+
+// AutoModerationRuleDelete is the data for an AutoModerationRuleDelete event.
+type AutoModerationRuleDelete struct {
+	*AutoModerationRule
+}
+
+// AutoModerationActionExecution is the data for an AutoModerationActionExecution event.
+type AutoModerationActionExecution struct {
+	GuildID              string                        `json:"guild_id"`
+	Action               AutoModerationAction          `json:"action"`
+	RuleID               string                        `json:"rule_id"`
+	RuleTriggerType      AutoModerationRuleTriggerType `json:"rule_trigger_type"`
+	UserID               string                        `json:"user_id"`
+	ChannelID            string                        `json:"channel_id"`
+	MessageID            string                        `json:"message_id"`
+	AlertSystemMessageID string                        `json:"alert_system_message_id"`
+	Content              string                        `json:"content"`
+	MatchedKeyword       string                        `json:"matched_keyword"`
+	MatchedContent       string                        `json:"matched_content"`
 }

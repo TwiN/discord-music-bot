@@ -29,16 +29,16 @@ func Connect(discordToken string) (*discordgo.Session, error) {
 	return discord, err
 }
 
-func GetGuildNameById(bot *discordgo.Session, guildId string) string {
-	guildName, ok := guildNames[guildId]
+func GetGuildNameByID(bot *discordgo.Session, guildID string) string {
+	guildName, ok := guildNames[guildID]
 	if !ok {
-		guild, err := bot.Guild(guildId)
+		guild, err := bot.Guild(guildID)
 		if err != nil {
 			// Failed to get the guild? Whatever, we'll just use the guild id
-			guildNames[guildId] = guildId
-			return guildId
+			guildNames[guildID] = guildID
+			return guildID
 		}
-		guildNames[guildId] = guild.Name
+		guildNames[guildID] = guild.Name
 		return guild.Name
 	}
 	return guildName
