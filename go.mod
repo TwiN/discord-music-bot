@@ -3,7 +3,7 @@ module github.com/TwiN/discord-music-bot
 go 1.19
 
 require (
-	github.com/bwmarrin/discordgo v0.26.1
+	github.com/bwmarrin/discordgo v0.27.1
 	github.com/jonas747/ogg v0.0.0-20161220051205-b4f6f4cf3757
 )
 
