@@ -41,5 +41,5 @@ func GetGuildNameByID(bot *discordgo.Session, guildID string) string {
 		guildNames[guildID] = guild.Name
 		return guild.Name
 	}
-	return guildName
+	return guildNamek;ko
 }
